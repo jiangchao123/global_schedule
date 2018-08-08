@@ -12,6 +12,10 @@ File    : produce_seed.py
 Software: PyCharm Community Edition
 
 """
+import numpy as np
+
+alpha = 10
+beta = 0.5
 T = 98
 
 
@@ -102,7 +106,8 @@ def tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
     return False
 
 
-def tell_app_interference_constraint(instance, machine, appsMap, machine_instances_num_map, instance_interferences):
+def tell_app_interference_constraint(instance, machine, appsMap, machine_instances_num_map,
+                                     instance_interferences):
     instances_num_map = machine_instances_num_map[machine.machineId]
     for appId, num in instances_num_map.items():
         conflictAppMap = instance_interferences.get(appId)
@@ -127,6 +132,29 @@ def tell_app_interference_constraint(instance, machine, appsMap, machine_instanc
     return False
 
 
+def compute_cpu_constraint(instance, machine, appsMap, used_machine_cpu, machine_cpu_score):
+    # instances = machine_instances_map[machine.machineId]
+    # for i in range(T):
+    #     cpu = 0
+    #     for instance1 in instances:
+    #         app = appsMap[instance1.appId]
+    #         cpu += app.cpus[i]
+    #     # print(appsMap[instance.appId].cpus[i])
+    #     cpu += appsMap[instance.appId].cpus[i]
+    #     if cpu > machine.cpu:
+    #         return True
+    # return False
+    # pre_score = sum(machine_cpu_score[machine.machineId])
+    time_used = (np.array(used_machine_cpu[machine.machineId]) + np.array(
+        appsMap[instance.appId].cpus)) / machine.cpu
+    increment_score = 0
+    for i in range(T):
+        s = alpha * (np.e ** max(0, time_used[i] - beta) - 1)
+        increment_score += s
+    increment_score -= machine_cpu_score[machine.machineId]
+    return increment_score
+
+
 def randomGreedy(instances, appsMap, machinesList, instance_interferences):
     """
     贪心算法，生成不同的种子
@@ -134,15 +162,15 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
     :return:
     """
     machine_instances_map, residual_machine_p, residual_machine_m, residual_machine_pm, \
-    residual_machine_disk, residual_machine_cpu, residual_machine_mem, machine_instances_num_map = init_exist_instances(
+    residual_machine_disk, residual_machine_cpu, half_residual_machine_cpu, used_machine_cpu, \
+    machine_cpu_score, residual_machine_mem, machine_instances_num_map = init_exist_instances(
         machinesList, 0.5)
     assignSize = 0
     for instance in instances:
         bestMachine = None
+        min_increment_score = 9800
         for machineId, machine in machinesList:
             if tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
-                continue
-            if tell_cpu_constraint(instance, machine, appsMap, residual_machine_cpu):
                 continue
             if tell_mem_constraint(instance, machine, appsMap, residual_machine_mem):
                 continue
@@ -155,10 +183,52 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
                 continue
             if tell_pm_constraint(instance, machine, appsMap, residual_machine_pm):
                 continue
+            if tell_cpu_constraint(instance, machine, appsMap, half_residual_machine_cpu):
+                continue
             bestMachine = machine
             break
+            # increment_score = compute_cpu_constraint(instance, machine, appsMap, used_machine_cpu,
+            #                                          machine_cpu_score)
+            # if increment_score == 0:
+            #     bestMachine = machine
+            #     break
+            # else:
+            #     if increment_score < min_increment_score:
+            #         bestMachine = machine
+            #         min_increment_score = increment_score
         if bestMachine is None:
-            print('未分配instance:', instance.instanceId)
+            # print('第一次未分配instance:', instance.instanceId)
+            # 贪心兜底
+            for machineId, machine in machinesList:
+                # print(machineId)
+                if tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
+                    # print('无满足的disk')
+                    continue
+                if tell_mem_constraint(instance, machine, appsMap, residual_machine_mem):
+                    # print('无满足的mem')
+                    continue
+                if tell_app_interference_constraint(instance, machine, appsMap,
+                                                    machine_instances_num_map,
+                                                    instance_interferences):
+                    # print('无满足的inter')
+                    continue
+                if tell_m_constraint(instance, machine, appsMap, residual_machine_m):
+                    # print('无满足的m')
+                    continue
+                if tell_p_constraint(instance, machine, appsMap, residual_machine_p):
+                    # print('无满足p')
+                    continue
+                if tell_pm_constraint(instance, machine, appsMap, residual_machine_pm):
+                    # print('无满足的pm')
+                    continue
+                if tell_cpu_constraint(instance, machine, appsMap, residual_machine_cpu):
+                    # print('无满足的cpu')
+                    continue
+                bestMachine = machine
+                break
+        if bestMachine is None:
+            print('第二次未分配instance:', instance.instanceId)
+
         if bestMachine is not None:
             machine_instances_map[bestMachine.machineId].append(instance)
             if machine_instances_num_map.get(bestMachine.machineId).get(instance.appId) is None:
@@ -169,8 +239,10 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
             residual_machine_m[bestMachine.machineId] -= appsMap[instance.appId].m
             residual_machine_pm[bestMachine.machineId] -= appsMap[instance.appId].pm
             residual_machine_disk[bestMachine.machineId] -= appsMap[instance.appId].disk
+            machine_cpu_score[bestMachine.machineId] += min_increment_score
             for i in range(T):
                 residual_machine_cpu[bestMachine.machineId][i] -= appsMap[instance.appId].cpus[i]
+                used_machine_cpu[bestMachine.machineId][i] += appsMap[instance.appId].cpus[i]
             for i in range(T):
                 residual_machine_mem[bestMachine.machineId][i] -= appsMap[instance.appId].mems[i]
             assignSize += 1
@@ -186,6 +258,9 @@ def init_exist_instances(machinesList, cpu_threhold=1):
     machine_instances_map = {}
     machine_instances_num_map = {}
     residual_machine_cpu = {}
+    half_residual_machine_cpu = {}
+    used_machine_cpu = {}
+    machine_cpu_score = {}
     residual_machine_mem = {}
     residual_machine_disk = {}
     residual_machine_p = {}
@@ -197,8 +272,12 @@ def init_exist_instances(machinesList, cpu_threhold=1):
         residual_machine_m[machineId] = machine.m
         residual_machine_pm[machineId] = machine.pm
         residual_machine_disk[machineId] = machine.disk
-        residual_machine_cpu[machineId] = [cpu_threhold * machine.cpu for i in range(T)]
+        residual_machine_cpu[machineId] = [machine.cpu for i in range(T)]
+        used_machine_cpu[machineId] = [0 for i in range(T)]
+        machine_cpu_score[machineId] = 0
+        half_residual_machine_cpu[machineId] = [cpu_threhold * machine.cpu for i in range(T)]
         residual_machine_mem[machineId] = [machine.mem for i in range(T)]
         machine_instances_num_map[machineId] = {}
     return machine_instances_map, residual_machine_p, residual_machine_m, residual_machine_pm, \
-           residual_machine_disk, residual_machine_cpu, residual_machine_mem, machine_instances_num_map
+           residual_machine_disk, residual_machine_cpu, half_residual_machine_cpu, used_machine_cpu, \
+           machine_cpu_score, residual_machine_mem, machine_instances_num_map

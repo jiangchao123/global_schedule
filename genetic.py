@@ -19,6 +19,7 @@ import array
 import random
 import numpy
 import data_preprocess.data_process as data_process
+import model.ga_crossover as ga_crossover
 
 from deap import algorithms
 from deap import base
@@ -27,6 +28,8 @@ from deap import tools
 
 machinesMap, sortedMachineList = data_process.handle_machine(
     'data/scheduling_preliminary_machine_resources_20180606.csv')
+for machineId, machine in sortedMachineList:
+    print(machineId)
 appsMap, sortedAppList = data_process.handle_app(
     'data/scheduling_preliminary_app_resources_20180606.csv')
 instancesMap, sortedInstanceList = data_process.handle_instance(
@@ -35,9 +38,9 @@ instance_interferences = data_process.handle_app_interference(
     'data/scheduling_preliminary_app_interference_20180606.csv')
 app_possible_machines, instance_possible_machines_length, sorted_instance_possible_machines_length_list = \
     data_process.handle_app_possible_machines(
-    appsMap,
-    sortedInstanceList,
-    sortedMachineList)
+        appsMap,
+        sortedInstanceList,
+        sortedMachineList)
 
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
 creator.create("Individual", array.array, typecode='i', fitness=creator.FitnessMin)
@@ -54,7 +57,7 @@ def individualToInstance(individual):
 
 
 def evalTSP(individual):
-    print('init_individual: ', individual)
+    # print('init_individual: ', individual)
     # flight_possiblePositions = generate_instance_possibleMachines()
     instances = individualToInstance(individual)
     machine_instances_map, assignSize = produce_seed.randomGreedy(instances, appsMap,
@@ -71,9 +74,6 @@ def init_individual():
         res_sub = random.sample(instanceIndexs, len(instanceIndexs))
         res.extend(res_sub)
     return res
-
-
-
 
 
 @exeTime
@@ -94,12 +94,13 @@ def train_model():
     toolbox.register("individual", tools.initIterate, creator.Individual, init_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-    toolbox.register("mate", tools.cxPartialyMatched)
+    toolbox.register("mate", ga_crossover.cxPartialyMatched,
+                     instance_possible_machines_length=instance_possible_machines_length)
     toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.05)
     toolbox.register("select", tools.selTournament, tournsize=3)
     toolbox.register("evaluate", evalTSP)
 
-    pop = toolbox.population(n=8)
+    pop = toolbox.population(n=300)
 
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -108,7 +109,7 @@ def train_model():
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
 
-    algorithms.eaSimple(pop, toolbox, 0.7, 0.2, 2, stats=stats,
+    algorithms.eaSimple(pop, toolbox, 0.7, 0.2, 1, stats=stats,
                         halloffame=hof)
     # print(hof[0])
     print(evalTSP(hof[0]))

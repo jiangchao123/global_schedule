@@ -118,8 +118,11 @@ def handle_app_possible_machines(appsMap, sortedInstanceList, sortedMachineList)
     instance_possible_machines_length = []
     instance_possible_machines_length_map = {}
     for appId, app in appsMap.items():
+        print('appid:', appId)
         app_possible_machines[appId] = []
         for machineId, machine in sortedMachineList:
+            if appId == 'app_1113':
+                print('machineId:', machineId)
             if app.disk > machine.disk:
                 continue
             if app.p > machine.p:
@@ -128,21 +131,31 @@ def handle_app_possible_machines(appsMap, sortedInstanceList, sortedMachineList)
                 continue
             if app.pm > machine.pm:
                 continue
+            terminate = False
             for i in range(T):
                 if app.cpus[i] > machine.cpu:
-                    continue
+                    terminate = True
+                    break
                 if app.mems[i] > machine.mem:
-                    continue
+                    terminate = True
+                    break
+            if terminate:
+                continue
             app_possible_machines[appId].append(machineId)
+        print('appid:', appId, ' possible machine:', len(app_possible_machines[appId]))
     index = 0
     for instanceId, instance in sortedInstanceList:
-        instance_possible_machines_length.append(len(app_possible_machines[instance.appId]))
+        # instance_possible_machines_length.append(len(app_possible_machines[instance.appId]))
         if instance_possible_machines_length_map.get(
                 len(app_possible_machines[instance.appId])) is None:
             instance_possible_machines_length_map[len(app_possible_machines[instance.appId])] = []
         instance_possible_machines_length_map[len(app_possible_machines[instance.appId])].append(
             index)
         index += 1
+    count = 0
+    for length, instanceIndexs in sorted(instance_possible_machines_length_map.items()):
+        instance_possible_machines_length.append([count, count+len(instanceIndexs)-1])
+        count += len(instanceIndexs)
     print('instance_possible_machines_length: ', instance_possible_machines_length)
     return app_possible_machines, instance_possible_machines_length, sorted(
         instance_possible_machines_length_map.items())
