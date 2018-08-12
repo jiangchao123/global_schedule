@@ -191,11 +191,18 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
     machine_cpu_score, residual_machine_mem, machine_instances_num_map = init_exist_instances(
         machinesList, 0.5)
     assignSize = 0
+    app_half_index_map = {}
+    app_index_map = {}
     for instance in instances:
         # print(instance, machine_instances_num_map)
         bestMachine = None
         min_increment_score = 9800
-        for machineId, machine in machinesList:
+        index = 0
+        if app_half_index_map.get(instance.appId) is not None:
+            index = app_half_index_map[instance.appId]
+        for i in range(index, len(machinesList)):
+            machine = machinesList[i][1]
+        # for machineId, machine in machinesList:
             # if machineId == 'machine_249':
             #     print('安排实例', instance.instanceId)
             if tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
@@ -214,6 +221,7 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
             if tell_cpu_constraint(instance, machine, appsMap, half_residual_machine_cpu):
                 continue
             bestMachine = machine
+            app_half_index_map[instance.appId] = i
             break
             # increment_score = compute_cpu_constraint(instance, machine, appsMap, used_machine_cpu,
             #                                          machine_cpu_score)
@@ -225,9 +233,15 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
             #         bestMachine = machine
             #         min_increment_score = increment_score
         if bestMachine is None:
+            app_half_index_map[instance.appId] = len(machinesList)
             # print('第一次未分配instance:', instance.instanceId)
+            index = 0
+            if app_index_map.get(instance.appId) is not None:
+                index = app_index_map[instance.appId]
             # 贪心兜底
-            for machineId, machine in machinesList:
+            for i in range(index, len(machinesList)):
+                machine = machinesList[i][1]
+            # for machineId, machine in machinesList:
                 # print(machineId)
                 if tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
                     # print('无满足的disk')
@@ -253,8 +267,10 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
                     # print('无满足的cpu')
                     continue
                 bestMachine = machine
+                app_index_map[instance.appId] = i
                 break
         if bestMachine is None:
+            app_index_map[instance.appId] = len(machinesList)
             print('第二次未分配instance:', instance.instanceId)
 
         if bestMachine is not None:
