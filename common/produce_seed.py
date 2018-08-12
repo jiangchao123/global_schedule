@@ -107,27 +107,52 @@ def tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
 
 
 def tell_app_interference_constraint(instance, machine, appsMap, machine_instances_num_map,
-                                     instance_interferences):
+                                     instance_interferences, print_info=False):
     instances_num_map = machine_instances_num_map[machine.machineId]
+    # if machine.machineId == 'machine_4697':
+    #     print(instances_num_map)
+    # 判断新的app在不在已有的app中的影响数组里
     for appId, num in instances_num_map.items():
+        if num == 0:
+            continue
         conflictAppMap = instance_interferences.get(appId)
+        # if print_info or instance.instanceId == 'inst_21766':
+        #     print('conflictAppMap:', appId, conflictAppMap)
         if conflictAppMap is None:
             continue
         for appId2, num2 in conflictAppMap.items():
             if instance.appId == appId2:
+                # if instance.instanceId == 'inst_21766':
+                #     print('oooooo', instance.appId, appId, appId2)
                 if appId == appId2:
                     if instances_num_map[appId2] > num2:
+                        # if print_info or instance.instanceId == 'inst_21766':
+                        #     print('-------', instance.appId, instances_num_map[appId], appId2, instances_num_map[appId2])
                         return True
-                elif instances_num_map.get(appId2) is not None:
-                    if instances_num_map[appId2] + 1 > num2:
+                else:
+                    if print_info:
+                        print(appId, appId2)
+                    count = 0
+                    if instances_num_map.get(appId2) is not None:
+                        count = instances_num_map.get(appId2)
+                    if count + 1 > num2:
+                        # if print_info or instance.instanceId == 'inst_21766':
+                        #     print('=======', instance.appId, instances_num_map[appId], appId2,
+                        #       instances_num_map.get(appId2))
                         return True
+
+    # 判断新的app的影响数组里，包不包含已有的app
     conflictAppMap = instance_interferences.get(instance.appId)
+    # if print_info or instance.instanceId == 'inst_21766':
+    #     print(instance.appId, conflictAppMap)
     if conflictAppMap is None:
         return False
     # print(conflictAppMap)
     for appId, num in conflictAppMap.items():
         if instances_num_map.get(appId) is not None:
             if instances_num_map[appId] > num:
+                # if print_info or instance.instanceId == 'inst_21766':
+                #     print(instance.appId, appId, instances_num_map.get(instance.appId), instances_num_map.get(appId))
                 return True
     return False
 
@@ -167,9 +192,12 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
         machinesList, 0.5)
     assignSize = 0
     for instance in instances:
+        # print(instance, machine_instances_num_map)
         bestMachine = None
         min_increment_score = 9800
         for machineId, machine in machinesList:
+            # if machineId == 'machine_249':
+            #     print('安排实例', instance.instanceId)
             if tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
                 continue
             if tell_mem_constraint(instance, machine, appsMap, residual_machine_mem):
@@ -230,6 +258,9 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
             print('第二次未分配instance:', instance.instanceId)
 
         if bestMachine is not None:
+            # if machineId == 'machine_249':
+            #     print('成功安排实例进机器', instance.instanceId, instance.appId, bestMachine.machineId)
+            #     print('此实例cpu占用：', appsMap[instance.appId].cpus)
             machine_instances_map[bestMachine.machineId].append(instance)
             if machine_instances_num_map.get(bestMachine.machineId).get(instance.appId) is None:
                 machine_instances_num_map[bestMachine.machineId][instance.appId] = 1
@@ -242,10 +273,15 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
             machine_cpu_score[bestMachine.machineId] += min_increment_score
             for i in range(T):
                 residual_machine_cpu[bestMachine.machineId][i] -= appsMap[instance.appId].cpus[i]
+                half_residual_machine_cpu[bestMachine.machineId][i] -= appsMap[instance.appId].cpus[i]
                 used_machine_cpu[bestMachine.machineId][i] += appsMap[instance.appId].cpus[i]
             for i in range(T):
                 residual_machine_mem[bestMachine.machineId][i] -= appsMap[instance.appId].mems[i]
             assignSize += 1
+            # if machineId == 'machine_249':
+            #     print('剩余cpu:', residual_machine_cpu)
+        if assignSize % 100 == 0:
+            print(assignSize)
     return machine_instances_map, assignSize
 
 

@@ -25,17 +25,31 @@ from deap import algorithms
 from deap import base
 from deap import creator
 from deap import tools
+from scoop import futures
+
+# machinesMap, sortedMachineList = data_process.handle_machine(
+#     'data/scheduling_preliminary_machine_resources_20180606.csv')
+# for machineId, machine in sortedMachineList:
+#     print(machineId)
+# appsMap, sortedAppList = data_process.handle_app(
+#     'data/scheduling_preliminary_app_resources_20180606.csv')
+# instancesMap, sortedInstanceList = data_process.handle_instance(
+#     'data/scheduling_preliminary_instance_deploy_20180606.csv')
+# instance_interferences = data_process.handle_app_interference(
+#     'data/scheduling_preliminary_app_interference_20180606.csv')
 
 machinesMap, sortedMachineList = data_process.handle_machine(
-    'data/scheduling_preliminary_machine_resources_20180606.csv')
+    'data/b/scheduling_preliminary_b_machine_resources_20180726.csv')
 for machineId, machine in sortedMachineList:
     print(machineId)
 appsMap, sortedAppList = data_process.handle_app(
-    'data/scheduling_preliminary_app_resources_20180606.csv')
+    'data/b/scheduling_preliminary_b_app_resources_20180726.csv')
 instancesMap, sortedInstanceList = data_process.handle_instance(
-    'data/scheduling_preliminary_instance_deploy_20180606.csv')
+    'data/b/scheduling_preliminary_b_instance_deploy_20180726.csv')
 instance_interferences = data_process.handle_app_interference(
-    'data/scheduling_preliminary_app_interference_20180606.csv')
+    'data/b/scheduling_preliminary_b_app_interference_20180726.csv')
+
+
 app_possible_machines, instance_possible_machines_length, sorted_instance_possible_machines_length_list = \
     data_process.handle_app_possible_machines(
         appsMap,
@@ -99,8 +113,9 @@ def train_model():
     toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.05)
     toolbox.register("select", tools.selTournament, tournsize=3)
     toolbox.register("evaluate", evalTSP)
+    toolbox.register("map", futures.map)
 
-    pop = toolbox.population(n=300)
+    pop = toolbox.population(n=8)
 
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -109,7 +124,7 @@ def train_model():
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
 
-    algorithms.eaSimple(pop, toolbox, 0.7, 0.2, 1, stats=stats,
+    algorithms.eaSimple(pop, toolbox, 0.7, 0.2, 0, stats=stats,
                         halloffame=hof)
     # print(hof[0])
     print(evalTSP(hof[0]))
@@ -121,8 +136,8 @@ def train_model():
 
 
 if __name__ == '__main__':
-    res_file = open('2018-7-23-res.csv', 'w')
     machine_instances_map, _ = train_model()
+    res_file = open('2018-8-7-b-res.csv', 'w')
     for machineId, instances in machine_instances_map.items():
         for instance in instances:
             res_file.write(str(instance.instanceId) + ',' + str(machineId) + '\n')

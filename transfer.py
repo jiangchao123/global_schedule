@@ -19,6 +19,76 @@ import common.produce_seed as produce_seed
 T = 98
 
 
+def tell_constrains(instance, machine, appsMap, residual_machine_disk, residual_machine_cpu,
+                    residual_machine_mem, machine_instances_num_map, residual_machine_m,
+                    residual_machine_p, residual_machine_pm, instance_interferences,
+                    print_info=False):
+    if produce_seed.tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
+        if print_info:
+            print('检测disk不合')
+        return False
+    if produce_seed.tell_cpu_constraint(instance, machine, appsMap, residual_machine_cpu):
+        if print_info:
+            print('检测cpu不合')
+        return False
+    if produce_seed.tell_mem_constraint(instance, machine, appsMap, residual_machine_mem):
+        if print_info:
+            print('检测mem不合')
+        return False
+    if produce_seed.tell_app_interference_constraint(instance, machine, appsMap,
+                                                     machine_instances_num_map,
+                                                     instance_interferences, print_info):
+        if print_info:
+            print('检测app interfere不合')
+            print(machine_instances_num_map[machine.machineId])
+        return False
+    if produce_seed.tell_m_constraint(instance, machine, appsMap, residual_machine_m):
+        if print_info:
+            print('检测m不合')
+        return False
+    if produce_seed.tell_p_constraint(instance, machine, appsMap, residual_machine_p):
+        if print_info:
+            print('检测p不合')
+        return False
+    if produce_seed.tell_pm_constraint(instance, machine, appsMap, residual_machine_pm):
+        if print_info:
+            print('检测pm不合')
+        return False
+    return True
+
+
+def update_state(instance, original_machineId, target_machineId, machine_instances_map,
+                 machine_instances_num_map, appsMap,
+                 residual_machine_p, residual_machine_m, residual_machine_pm, residual_machine_disk,
+                 residual_machine_cpu, residual_machine_mem):
+    machine_instances_map[target_machineId].append(instance)
+    machine_instances_map[original_machineId].remove(instance)
+    # init_instance_map.pop(instance_id)
+    if machine_instances_num_map.get(target_machineId).get(instance.appId) is None:
+        machine_instances_num_map[target_machineId][instance.appId] = 1
+    else:
+        machine_instances_num_map[target_machineId][instance.appId] += 1
+    machine_instances_num_map[original_machineId][instance.appId] -= 1
+    residual_machine_p[original_machineId] += appsMap[instance.appId].p
+    residual_machine_m[original_machineId] += appsMap[instance.appId].m
+    residual_machine_pm[original_machineId] += appsMap[instance.appId].pm
+    residual_machine_disk[original_machineId] += appsMap[instance.appId].disk
+    residual_machine_p[target_machineId] -= appsMap[instance.appId].p
+    residual_machine_m[target_machineId] -= appsMap[instance.appId].m
+    residual_machine_pm[target_machineId] -= appsMap[instance.appId].pm
+    residual_machine_disk[target_machineId] -= appsMap[instance.appId].disk
+    for i in range(T):
+        residual_machine_cpu[original_machineId][i] += appsMap[instance.appId].cpus[
+            i]
+        residual_machine_cpu[target_machineId][i] -= appsMap[instance.appId].cpus[
+            i]
+    for i in range(T):
+        residual_machine_mem[original_machineId][i] += appsMap[instance.appId].mems[
+            i]
+        residual_machine_mem[target_machineId][i] -= appsMap[instance.appId].mems[
+            i]
+
+
 def transfer_instance():
     machinesMap, sortedMachineList = data_process.handle_machine(
         'data/scheduling_preliminary_machine_resources_20180606.csv')
@@ -28,7 +98,24 @@ def transfer_instance():
         'data/scheduling_preliminary_instance_deploy_20180606.csv')
     instance_interferences = data_process.handle_app_interference(
         'data/scheduling_preliminary_app_interference_20180606.csv')
-    res_file = open('2018-7-23-final.csv', 'w')
+    res_file = open('2018-8-7-a-final.csv', 'w')
+    final_instancesMap, final_sortedInstanceList = data_process.handle_instance(
+        '2018-8-7-a-res.csv')
+    print(len(final_instancesMap))
+
+    # def transfer_instance():
+    #     machinesMap, sortedMachineList = data_process.handle_machine(
+    #         'data/b/scheduling_preliminary_b_machine_resources_20180726.csv')
+    #     appsMap, sortedAppList = data_process.handle_app(
+    #         'data/b/scheduling_preliminary_b_app_resources_20180726.csv')
+    #     instancesMap, sortedInstanceList = data_process.handle_instance(
+    #         'data/b/scheduling_preliminary_b_instance_deploy_20180726.csv')
+    #     instance_interferences = data_process.handle_app_interference(
+    #         'data/b/scheduling_preliminary_b_app_interference_20180726.csv')
+    #     res_file = open('2018-8-7-b-final.csv', 'w')
+    #     final_instancesMap, final_sortedInstanceList = data_process.handle_instance(
+    #         '2018-8-7-b-res.csv')
+    #     print(len(final_instancesMap))
 
     machine_instances_map = {}
     machine_instances_num_map = {}
@@ -67,64 +154,373 @@ def transfer_instance():
                 residual_machine_mem[instance.machineId][i] -= appsMap[instance.appId].mems[
                     i]
 
-    final_instancesMap, final_sortedInstanceList = data_process.handle_instance(
-        '2018-7-23-res.csv')
-    print(len(final_instancesMap))
-    count = 0
-    while count < len(init_instance_map):
+    print(len(init_instance_map))
+    for i in range(3):
+        count = 0
         for instance_id, instance in init_instance_map.items():
+            if instance_id == 'inst_82212':
+                print('安排实例', instance_id, instance.machineId)
+            if instance.final_machineId is not None:
+                continue
             final_instance = final_instancesMap.get(instance_id)
-            print(instance_id, final_instance)
+            if final_instance is None:
+                continue
             machine = machinesMap.get(final_instance.final_machineId)
-            if produce_seed.tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
+            if instance.machineId == final_instance.final_machineId:
+                instance.final_machineId = final_instance.final_machineId
+                res_file.write(instance.instanceId + ',' + machine.machineId + '\n')
                 continue
-            if produce_seed.tell_cpu_constraint(instance, machine, appsMap, residual_machine_cpu):
-                continue
-            if produce_seed.tell_mem_constraint(instance, machine, appsMap, residual_machine_mem):
-                continue
-            if produce_seed.tell_app_interference_constraint(instance, machine, appsMap,
-                                                             machine_instances_num_map,
-                                                             instance_interferences):
-                continue
-            if produce_seed.tell_m_constraint(instance, machine, appsMap, residual_machine_m):
-                continue
-            if produce_seed.tell_p_constraint(instance, machine, appsMap, residual_machine_p):
-                continue
-            if produce_seed.tell_pm_constraint(instance, machine, appsMap, residual_machine_pm):
-                continue
-            instance.final_machineId = final_instance.final_machineId
-            machine_instances_map[instance.final_machineId].append(instance)
-            machine_instances_map[instance.machineId].remove(instance)
-            if machine_instances_num_map.get(instance.final_machineId).get(instance.appId) is None:
-                machine_instances_num_map[instance.final_machineId][instance.appId] = 1
+            assign_path = []
+            if tell_constrains(instance, machine, appsMap, residual_machine_disk,
+                               residual_machine_cpu,
+                               residual_machine_mem, machine_instances_num_map, residual_machine_m,
+                               residual_machine_p, residual_machine_pm, instance_interferences):
+                instance.final_machineId = machine.machineId
+                assign_path.append([instance.instanceId, machine.machineId])
+                res_file.write(instance.instanceId + ',' + machine.machineId + '\n')
+                update_state(instance, instance.machineId, instance.final_machineId,
+                             machine_instances_map, machine_instances_num_map, appsMap,
+                             residual_machine_p, residual_machine_m, residual_machine_pm,
+                             residual_machine_disk,
+                             residual_machine_cpu, residual_machine_mem)
             else:
-                machine_instances_num_map[instance.final_machineId][instance.appId] += 1
-            machine_instances_num_map[instance.machineId][instance.appId] -= 1
-            residual_machine_p[instance.machineId] += appsMap[instance.appId].p
-            residual_machine_m[instance.machineId] += appsMap[instance.appId].m
-            residual_machine_pm[instance.machineId] += appsMap[instance.appId].pm
-            residual_machine_disk[instance.machineId] += appsMap[instance.appId].disk
-            residual_machine_p[instance.final_machineId] -= appsMap[instance.appId].p
-            residual_machine_m[instance.final_machineId] -= appsMap[instance.appId].m
-            residual_machine_pm[instance.final_machineId] -= appsMap[instance.appId].pm
-            residual_machine_disk[instance.final_machineId] -= appsMap[instance.appId].disk
-            for i in range(T):
-                residual_machine_cpu[instance.machineId][i] += appsMap[instance.appId].cpus[
-                    i]
-                residual_machine_cpu[instance.final_machineId][i] -= appsMap[instance.appId].cpus[
-                    i]
-            for i in range(T):
-                residual_machine_mem[instance.machineId][i] += appsMap[instance.appId].mems[
-                    i]
-                residual_machine_mem[instance.final_machineId][i] -= appsMap[instance.appId].mems[
-                    i]
-            count += 1
-            res_file.write(instance.instanceId + ',' + instance.machineId + '\n')
+                instances = machine_instances_map.get(machine.machineId)
+                for instance2 in instances:
+                    final_instance2 = final_instancesMap.get(instance2.instanceId)
+                    if final_instance2 is None:
+                        continue
+                    machine2 = machinesMap.get(final_instance2.final_machineId)
+                    if instance2.final_machineId is not None:
+                        continue
+                    if instance2.machineId == final_instance2.final_machineId:
+                        instance2.final_machineId = final_instance2.final_machineId
+                        continue
+                    if tell_constrains(instance2, machine2, appsMap, residual_machine_disk,
+                                       residual_machine_cpu,
+                                       residual_machine_mem, machine_instances_num_map,
+                                       residual_machine_m,
+                                       residual_machine_p, residual_machine_pm,
+                                       instance_interferences):
+                        instance2.final_machineId = machine2.machineId
+                        assign_path.append([instance2.instanceId, machine2.machineId])
+                        res_file.write(instance2.instanceId + ',' + machine2.machineId + '\n')
+                        update_state(instance2, instance2.machineId, instance2.final_machineId,
+                                     machine_instances_map, machine_instances_num_map, appsMap,
+                                     residual_machine_p, residual_machine_m, residual_machine_pm,
+                                     residual_machine_disk,
+                                     residual_machine_cpu, residual_machine_mem)
+                    else:
+                        for machineId, machine3 in sortedMachineList:
+                            if instance2.machineId == machineId:
+                                continue
+                            if tell_constrains(instance2, machine3, appsMap, residual_machine_disk,
+                                               residual_machine_cpu,
+                                               residual_machine_mem, machine_instances_num_map,
+                                               residual_machine_m,
+                                               residual_machine_p, residual_machine_pm,
+                                               instance_interferences):
+                                assign_path.append([instance2.instanceId, machine3.machineId])
+                                update_state(instance2, instance2.machineId, machine3.machineId,
+                                             machine_instances_map, machine_instances_num_map,
+                                             appsMap,
+                                             residual_machine_p, residual_machine_m,
+                                             residual_machine_pm,
+                                             residual_machine_disk,
+                                             residual_machine_cpu, residual_machine_mem)
+                                instance2.machineId = machine3.machineId
+                                res_file.write(
+                                    instance2.instanceId + ',' + machine3.machineId + '\n')
+                                break
+                    if tell_constrains(instance, machine, appsMap, residual_machine_disk,
+                                       residual_machine_cpu,
+                                       residual_machine_mem, machine_instances_num_map,
+                                       residual_machine_m,
+                                       residual_machine_p, residual_machine_pm,
+                                       instance_interferences):
+                        instance.final_machineId = machine.machineId
+                        update_state(instance, instance.machineId, instance.final_machineId,
+                                     machine_instances_map, machine_instances_num_map, appsMap,
+                                     residual_machine_p, residual_machine_m, residual_machine_pm,
+                                     residual_machine_disk,
+                                     residual_machine_cpu, residual_machine_mem)
+                        res_file.write(instance.instanceId + ',' + machine.machineId + '\n')
+                        break
+            if instance.final_machineId is not None:
+                # print(assign_path)
+                pass
+            else:
+                # print('instance未迁移成功:', instance.instanceId)
+                count += 1
+        print('第', i, '次全部未安排:', count)
 
+    # count = 0
+    # for instance_id, instance in init_instance_map.items():
+    #     # print('安排实例', instance_id)
+    #     if instance.final_machineId is not None:
+    #         continue
+    #     final_instance = final_instancesMap.get(instance_id)
+    #     if final_instance is None:
+    #         continue
+    #     machine = machinesMap.get(final_instance.final_machineId)
+    #     if instance.machineId == final_instance.final_machineId:
+    #         instance.final_machineId = final_instance.final_machineId
+    #         continue
+    #     assign_path = []
+    #     if tell_constrains(instance, machine, appsMap, residual_machine_disk, residual_machine_cpu,
+    #                        residual_machine_mem, machine_instances_num_map, residual_machine_m,
+    #                        residual_machine_p, residual_machine_pm, instance_interferences):
+    #         instance.final_machineId = machine.machineId
+    #         assign_path.append([instance.instanceId, machine.machineId])
+    #         update_state(instance, instance.machineId, instance.final_machineId, machine_instances_map, machine_instances_num_map, appsMap,
+    #                      residual_machine_p, residual_machine_m, residual_machine_pm,
+    #                      residual_machine_disk,
+    #                      residual_machine_cpu, residual_machine_mem)
+    #         res_file.write(instance.instanceId + ',' + machine.machineId + '\n')
+    #     else:
+    #         instances = machine_instances_map.get(machine.machineId)
+    #         for instance2 in instances:
+    #             final_instance2 = final_instancesMap.get(instance2.instanceId)
+    #             if final_instance2 is None:
+    #                 continue
+    #             machine2 = machinesMap.get(final_instance2.final_machineId)
+    #             if instance2.final_machineId is not None:
+    #                 continue
+    #             if instance2.machineId == final_instance2.final_machineId:
+    #                 instance2.final_machineId = final_instance2.final_machineId
+    #                 continue
+    #             if tell_constrains(instance2, machine2, appsMap, residual_machine_disk,
+    #                                residual_machine_cpu,
+    #                                residual_machine_mem, machine_instances_num_map,
+    #                                residual_machine_m,
+    #                                residual_machine_p, residual_machine_pm, instance_interferences):
+    #                 instance2.final_machineId = machine2.machineId
+    #                 assign_path.append([instance2.instanceId, machine2.machineId])
+    #                 update_state(instance2, instance2.machineId, instance2.final_machineId,
+    #                              machine_instances_map, machine_instances_num_map, appsMap,
+    #                              residual_machine_p, residual_machine_m, residual_machine_pm,
+    #                              residual_machine_disk,
+    #                              residual_machine_cpu, residual_machine_mem)
+    #                 res_file.write(instance2.instanceId + ',' + machine2.machineId + '\n')
+    #             else:
+    #                 for machineId, machine3 in sortedMachineList:
+    #                     if instance2.machineId == machineId:
+    #                         continue
+    #                     if tell_constrains(instance2, machine3, appsMap, residual_machine_disk,
+    #                                        residual_machine_cpu,
+    #                                        residual_machine_mem, machine_instances_num_map,
+    #                                        residual_machine_m,
+    #                                        residual_machine_p, residual_machine_pm,
+    #                                        instance_interferences):
+    #
+    #                         assign_path.append([instance2.instanceId, machine3.machineId])
+    #                         update_state(instance2, instance2.machineId, machine3.machineId,
+    #                                      machine_instances_map, machine_instances_num_map, appsMap,
+    #                                      residual_machine_p, residual_machine_m,
+    #                                      residual_machine_pm,
+    #                                      residual_machine_disk,
+    #                                      residual_machine_cpu, residual_machine_mem)
+    #                         instance2.machineId = machine3.machineId
+    #                         res_file.write(instance2.instanceId + ',' + machine3.machineId + '\n')
+    #                         break
+    #             if tell_constrains(instance, machine, appsMap, residual_machine_disk,
+    #                                residual_machine_cpu,
+    #                                residual_machine_mem, machine_instances_num_map,
+    #                                residual_machine_m,
+    #                                residual_machine_p, residual_machine_pm,
+    #                                instance_interferences):
+    #                 instance.final_machineId = machine.machineId
+    #                 update_state(instance, instance.machineId, instance.final_machineId,
+    #                              machine_instances_map, machine_instances_num_map, appsMap,
+    #                              residual_machine_p, residual_machine_m, residual_machine_pm,
+    #                              residual_machine_disk,
+    #                              residual_machine_cpu, residual_machine_mem)
+    #                 res_file.write(instance.instanceId + ',' + machine.machineId + '\n')
+    #                 break
+    #     if instance.final_machineId is not None:
+    #         # print(assign_path)
+    #         pass
+    #     else:
+    #         # print('instance未迁移成功:', instance.instanceId)
+    #         count += 1
+    # print('第二次全部未安排:', count)
+    #
+    # count = 0
+    # for instance_id, instance in init_instance_map.items():
+    #     if instance.final_machineId is not None:
+    #         continue
+    #     final_instance = final_instancesMap.get(instance_id)
+    #     if final_instance is None:
+    #         continue
+    #     machine = machinesMap.get(final_instance.final_machineId)
+    #     print('安排实例', instance_id, instance.appId, ' target machine:', machine.machineId)
+    #     if instance.machineId == final_instance.final_machineId:
+    #         instance.final_machineId = final_instance.final_machineId
+    #         continue
+    #     assign_path = []
+    #     instances = machine_instances_map.get(machine.machineId)
+    #     print('机器已有实例数量:', len(instances))
+    #
+    #     if tell_constrains(instance, machine, appsMap, residual_machine_disk, residual_machine_cpu,
+    #                        residual_machine_mem, machine_instances_num_map, residual_machine_m,
+    #                        residual_machine_p, residual_machine_pm, instance_interferences, True):
+    #         instance.final_machineId = machine.machineId
+    #         assign_path.append([instance.instanceId, machine.machineId])
+    #         update_state(instance, instance.machineId, instance.final_machineId,
+    #                      machine_instances_map, machine_instances_num_map, appsMap,
+    #                      residual_machine_p, residual_machine_m, residual_machine_pm,
+    #                      residual_machine_disk,
+    #                      residual_machine_cpu, residual_machine_mem)
+    #         res_file.write(instance.instanceId + ',' + machine.machineId + '\n')
+    #     else:
+    #         instances = machine_instances_map.get(machine.machineId)
+    #         for instance2 in instances:
+    #             print(instance2.instanceId, instance2.appId, instance2.final_machineId)
+    #             final_instance2 = final_instancesMap.get(instance2.instanceId)
+    #             if final_instance2 is None:
+    #                 print('-=-=-=-=-==-')
+    #                 continue
+    #             machine2 = machinesMap.get(final_instance2.final_machineId)
+    #             if instance2.final_machineId is not None:
+    #                 print('此实例被固定住1：', instance2.instanceId, instance2.appId, instance2.final_machineId)
+    #                 continue
+    #             if instance2.machineId == final_instance2.final_machineId:
+    #                 instance2.final_machineId = final_instance2.final_machineId
+    #                 print('此实例被固定住2：', instance2.instanceId, instance2.appId, instance2.final_machineId)
+    #                 continue
+    #             print('准备迁移实例', instance2.instanceId)
+    #             if tell_constrains(instance2, machine2, appsMap, residual_machine_disk,
+    #                                residual_machine_cpu,
+    #                                residual_machine_mem, machine_instances_num_map,
+    #                                residual_machine_m,
+    #                                residual_machine_p, residual_machine_pm, instance_interferences):
+    #                 instance2.final_machineId = machine2.machineId
+    #                 assign_path.append([instance2.instanceId, machine2.machineId])
+    #                 update_state(instance2, instance2.machineId, instance2.final_machineId,
+    #                              machine_instances_map, machine_instances_num_map, appsMap,
+    #                              residual_machine_p, residual_machine_m, residual_machine_pm,
+    #                              residual_machine_disk,
+    #                              residual_machine_cpu, residual_machine_mem)
+    #                 res_file.write(instance2.instanceId + ',' + machine2.machineId + '\n')
+    #             else:
+    #                 for machineId, machine3 in sortedMachineList:
+    #                     if instance2.machineId == machineId:
+    #                         continue
+    #                     if tell_constrains(instance2, machine3, appsMap, residual_machine_disk,
+    #                                        residual_machine_cpu,
+    #                                        residual_machine_mem, machine_instances_num_map,
+    #                                        residual_machine_m,
+    #                                        residual_machine_p, residual_machine_pm,
+    #                                        instance_interferences):
+    #                         assign_path.append([instance2.instanceId, machine3.machineId])
+    #                         update_state(instance2, instance2.machineId, machine3.machineId,
+    #                                      machine_instances_map, machine_instances_num_map, appsMap,
+    #                                      residual_machine_p, residual_machine_m,
+    #                                      residual_machine_pm,
+    #                                      residual_machine_disk,
+    #                                      residual_machine_cpu, residual_machine_mem)
+    #                         instance2.machineId = machine3.machineId
+    #                         res_file.write(instance2.instanceId + ',' + machine3.machineId + '\n')
+    #                         break
+    #             if tell_constrains(instance, machine, appsMap, residual_machine_disk,
+    #                                residual_machine_cpu,
+    #                                residual_machine_mem, machine_instances_num_map,
+    #                                residual_machine_m,
+    #                                residual_machine_p, residual_machine_pm,
+    #                                instance_interferences):
+    #                 instance.final_machineId = machine.machineId
+    #                 update_state(instance, instance.machineId, instance.final_machineId,
+    #                              machine_instances_map, machine_instances_num_map, appsMap,
+    #                              residual_machine_p, residual_machine_m, residual_machine_pm,
+    #                              residual_machine_disk,
+    #                              residual_machine_cpu, residual_machine_mem)
+    #                 res_file.write(instance.instanceId + ',' + machine.machineId + '\n')
+    #                 break
+    #     if instance.final_machineId is not None:
+    #         # print(assign_path)
+    #         pass
+    #     else:
+    #         print('instance未迁移成功:', instance.instanceId)
+    #         count += 1
+    # print('第三次全部未安排:', count)
+
+    # count = 0
+    # while count < len(init_instance_map):
+    #     has_assign_num = 0
+    #     count2 = 0
+    #     for instance_id, instance in init_instance_map.items():
+    #         print('count2:', count2, len(init_instance_map))
+    #         count2 += 1
+    #         if instance.final_machineId is not None:
+    #             has_assign_num += 1
+    #             continue
+    #         final_instance = final_instancesMap.get(instance_id)
+    #         # if instance_id == 'inst_23673':
+    #         #     print(instance_id, instance, final_instance)
+    #         machine = machinesMap.get(final_instance.final_machineId)
+    #         if produce_seed.tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
+    #             continue
+    #         if produce_seed.tell_cpu_constraint(instance, machine, appsMap, residual_machine_cpu):
+    #             continue
+    #         if produce_seed.tell_mem_constraint(instance, machine, appsMap, residual_machine_mem):
+    #             continue
+    #         if produce_seed.tell_app_interference_constraint(instance, machine, appsMap,
+    #                                                          machine_instances_num_map,
+    #                                                          instance_interferences):
+    #             continue
+    #         if produce_seed.tell_m_constraint(instance, machine, appsMap, residual_machine_m):
+    #             continue
+    #         if produce_seed.tell_p_constraint(instance, machine, appsMap, residual_machine_p):
+    #             continue
+    #         if produce_seed.tell_pm_constraint(instance, machine, appsMap, residual_machine_pm):
+    #             continue
+    #         instance.final_machineId = final_instance.final_machineId
+    #         machine_instances_map[instance.final_machineId].append(instance)
+    #         # if instance_id == 'inst_23673':
+    #         #     print(instance.machineId)
+    #         if instance in machine_instances_map[instance.machineId]:
+    #             machine_instances_map[instance.machineId].remove(instance)
+    #         # init_instance_map.pop(instance_id)
+    #         if machine_instances_num_map.get(instance.final_machineId).get(instance.appId) is None:
+    #             machine_instances_num_map[instance.final_machineId][instance.appId] = 1
+    #         else:
+    #             machine_instances_num_map[instance.final_machineId][instance.appId] += 1
+    #         machine_instances_num_map[instance.machineId][instance.appId] -= 1
+    #         residual_machine_p[instance.machineId] += appsMap[instance.appId].p
+    #         residual_machine_m[instance.machineId] += appsMap[instance.appId].m
+    #         residual_machine_pm[instance.machineId] += appsMap[instance.appId].pm
+    #         residual_machine_disk[instance.machineId] += appsMap[instance.appId].disk
+    #         residual_machine_p[instance.final_machineId] -= appsMap[instance.appId].p
+    #         residual_machine_m[instance.final_machineId] -= appsMap[instance.appId].m
+    #         residual_machine_pm[instance.final_machineId] -= appsMap[instance.appId].pm
+    #         residual_machine_disk[instance.final_machineId] -= appsMap[instance.appId].disk
+    #         for i in range(T):
+    #             residual_machine_cpu[instance.machineId][i] += appsMap[instance.appId].cpus[
+    #                 i]
+    #             residual_machine_cpu[instance.final_machineId][i] -= appsMap[instance.appId].cpus[
+    #                 i]
+    #         for i in range(T):
+    #             residual_machine_mem[instance.machineId][i] += appsMap[instance.appId].mems[
+    #                 i]
+    #             residual_machine_mem[instance.final_machineId][i] -= appsMap[instance.appId].mems[
+    #                 i]
+    #         count += 1
+    #         res_file.write(instance.instanceId + ',' + instance.machineId + '\n')
+    #     if has_assign_num == len(init_instance_map):
+    #         print(has_assign_num, len(init_instance_map))
+    #         break
     for instance_id, instance in instancesMap.items():
+        # if instance_id == 'inst_21379':
+        #     print(appsMap[instance.appId].cpus)
+        #     score = [0 for i in range(T)]
+        #     for instance in machine_instances_map.get(final_instancesMap.get(instance_id).final_machineId):
+        #         print(instance.instanceId, appsMap[instance.appId].cpus)
+        #         for i in range(T):
+        #             score[i] += appsMap[instance.appId].cpus[i]
+        #     print('score:', score, max(score))
         if instance.final_machineId is None:
             res_file.write(
                 instance_id + ',' + final_instancesMap.get(instance_id).final_machineId + '\n')
     res_file.close()
+
 
 transfer_instance()

@@ -120,9 +120,13 @@ def handle_app_possible_machines(appsMap, sortedInstanceList, sortedMachineList)
     for appId, app in appsMap.items():
         print('appid:', appId)
         app_possible_machines[appId] = []
+        count = 0
         for machineId, machine in sortedMachineList:
-            if appId == 'app_1113':
-                print('machineId:', machineId)
+            if count < 3000:
+                count += 1
+                # print(machine.disk)
+                app_possible_machines[appId].append(machineId)
+                continue
             if app.disk > machine.disk:
                 continue
             if app.p > machine.p:
