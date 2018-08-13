@@ -88,7 +88,9 @@ def tell_mem_constraint(instance, machine, appsMap, residual_machine_mem):
     #         return True
     # return False
     for i in range(T):
-        if appsMap[instance.appId].mems[i] > residual_machine_mem[machine.machineId][i]:
+        if appsMap[instance.appId].mems[i] > round(residual_machine_mem[machine.machineId][i], 12):
+            # print('mem:', i, appsMap[instance.appId].mems[i],
+            #       round(residual_machine_mem[machine.machineId][i], 12))
             return True
     return False
 
@@ -202,7 +204,7 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
             index = app_half_index_map[instance.appId]
         for i in range(index, len(machinesList)):
             machine = machinesList[i][1]
-        # for machineId, machine in machinesList:
+            # for machineId, machine in machinesList:
             # if machineId == 'machine_249':
             #     print('安排实例', instance.instanceId)
             if tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
@@ -241,7 +243,7 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
             # 贪心兜底
             for i in range(index, len(machinesList)):
                 machine = machinesList[i][1]
-            # for machineId, machine in machinesList:
+                # for machineId, machine in machinesList:
                 # print(machineId)
                 if tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
                     # print('无满足的disk')
@@ -289,7 +291,8 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
             machine_cpu_score[bestMachine.machineId] += min_increment_score
             for i in range(T):
                 residual_machine_cpu[bestMachine.machineId][i] -= appsMap[instance.appId].cpus[i]
-                half_residual_machine_cpu[bestMachine.machineId][i] -= appsMap[instance.appId].cpus[i]
+                half_residual_machine_cpu[bestMachine.machineId][i] -= appsMap[instance.appId].cpus[
+                    i]
                 used_machine_cpu[bestMachine.machineId][i] += appsMap[instance.appId].cpus[i]
             for i in range(T):
                 residual_machine_mem[bestMachine.machineId][i] -= appsMap[instance.appId].mems[i]

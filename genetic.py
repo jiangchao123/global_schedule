@@ -115,7 +115,7 @@ def train_model():
     toolbox.register("evaluate", evalTSP)
     toolbox.register("map", futures.map)
 
-    pop = toolbox.population(n=8)
+    pop = toolbox.population(n=4)
 
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -127,8 +127,8 @@ def train_model():
     algorithms.eaSimple(pop, toolbox, 0.7, 0.2, 0, stats=stats,
                         halloffame=hof)
     # print(hof[0])
-    print(evalTSP(hof[0]))
-    machine_instances_map = produce_seed.randomGreedy(individualToInstance(hof[0]),
+    # print(evalTSP(hof[0]))
+    machine_instances_map, _ = produce_seed.randomGreedy(individualToInstance(hof[0]),
                                                       appsMap, sortedMachineList,
                                                       instance_interferences)
     # print(machine_instances_map)
@@ -136,7 +136,7 @@ def train_model():
 
 
 if __name__ == '__main__':
-    machine_instances_map, _ = train_model()
+    machine_instances_map = train_model()
     res_file = open('2018-8-7-b-res.csv', 'w')
     for machineId, instances in machine_instances_map.items():
         for instance in instances:

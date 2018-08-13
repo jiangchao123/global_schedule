@@ -31,8 +31,8 @@ def static_num(filepath):
     print(len(instancesMap))
     return instancesMap
 
-instancesMap = static_num('2018-8-7-a-final.csv')
-instancesMap2 = static_num('2018-8-7-a-res.csv')
+instancesMap = static_num('2018-8-7-b-final.csv')
+instancesMap2 = static_num('2018-8-7-b-res.csv')
 
 # print(instancesMap.keys() not in instancesMap2.keys())
 for instanceId in instancesMap2.keys():
