@@ -58,6 +58,7 @@ def read_init_solution(filepath):
 machine_instances_map, instance_machine_map, fit = read_init_solution('2018-8-7-a-res.csv')
 # static_tool.static_machine(machine_instances_map, machinesMap, appsMap)
 print(fit)
+origin_fit = fit
 
 
 def compute_machine_score(instances, machine):
@@ -259,7 +260,45 @@ def score_mut_change(machine, app, origin_machine):
     return origin_val, target_val
 
 
-def cross_update_info(machineId1, machineId2, instance_index1, instance_index2, app1, app2, machine_val1, machine_val2):
+def score_mut_change_list(change_list, max_count, origin_machineId):
+    origin_machine_val = 0
+    target_machine_val = 0
+    origin_origin_machine_val = machine_cpu_score[origin_machineId]
+    target_origin_machine_val = 0
+    target_vals = []
+    if len(change_list) == max_count:
+        origin_machine_val = 0
+    else:
+        cpus = used_machine_cpu[origin_machineId]
+        for i in range(T):
+            for instanceId, target_machineId, instance, app, origin_machineId in change_list:
+                cpus[i] -= app.cpus[i]
+            cpuUseRate = cpus[i] / machine.cpu
+            s = 1 + alpha * (np.e ** max(0, cpuUseRate - beta) - 1)
+            origin_machine_val += s
+        for i in range(T):
+            for instanceId, target_machineId, instance, app, origin_machineId in change_list:
+                cpus[i] += app.cpus[i]
+
+    for instanceId, target_machineId, instance, app, origin_machineId in change_list:
+        target_tmp_val = 0
+        cpus = used_machine_cpu[target_machineId]
+        for i in range(T):
+            cpus[i] += app.cpus[i]
+            cpuUseRate = cpus[i] / machine.cpu
+            s = 1 + alpha * (np.e ** max(0, cpuUseRate - beta) - 1)
+            target_tmp_val += s
+            cpus[i] -= app.cpus[i]
+        target_vals.append(target_tmp_val)
+        target_machine_val += target_tmp_val
+        target_origin_machine_val += machine_cpu_score[target_machineId]
+    diff = (origin_origin_machine_val + target_origin_machine_val) - (
+        origin_machine_val + target_machine_val)
+    return diff, origin_machine_val, target_vals
+
+
+def cross_update_info(machineId1, machineId2, instance_index1, instance_index2, app1, app2,
+                      machine_val1, machine_val2):
     machine_instances_map[machineId1].append(sortedInstanceList[instance_index2][1])
     machine_instances_map[machineId1].remove(sortedInstanceList[instance_index1][1])
     machine_instances_map[machineId2].append(sortedInstanceList[instance_index1][1])
@@ -293,9 +332,9 @@ def cross_update_info(machineId1, machineId2, instance_index1, instance_index2, 
     machine_cpu_score[machineId2] = machine_val2
 
 
-def mut_update_info(machineId, instance_index1, app1, origin_machineId):
-    machine_instances_map[machineId].append(sortedInstanceList[instance_index1][1])
-    machine_instances_map[origin_machineId].remove(sortedInstanceList[instance_index1][1])
+def mut_update_info(machineId, instance, app1, origin_machineId):
+    machine_instances_map[machineId].append(instance)
+    machine_instances_map[origin_machineId].remove(instance)
     residual_machine_p[machineId] -= app1.p
     residual_machine_m[machineId] -= app1.m
     residual_machine_pm[machineId] -= app1.pm
@@ -319,7 +358,7 @@ def mut_update_info(machineId, instance_index1, app1, origin_machineId):
 
 
 def sa():
-    T_current = 1500
+    T_current = 15000
     T_min = 50
     r = 0.8
     cross_step = 5
@@ -375,36 +414,54 @@ def sa():
                 fit = fitness.fitnessfun(machine_instances_map, machinesMap, appsMap,
                                          len(instancesMap),
                                          len(instancesMap))
-                print('fit:', fit)
+                print('fit:', fit, ' 应该为：', (origin_fit-val/T))
                 # break
         else:
             # 变异
+            target_machines = []
             while True:
-
-                instance_index1 = random.randint(0, len(instancesMap) - 1)
-                app1 = appsMap.get(sortedInstanceList[instance_index1][1].appId)
-                origin_machineId = instance_machine_map.get(sortedInstanceList[instance_index1][0])
                 machine_index = random.randint(0, len(machinesMap) - 1)
-                machineId = sortedMachineList[machine_index][0]
-                if not tell_mut_constraint(machineId, app1):
-                    break
-            change_list.append([sortedInstanceList[instance_index1][0], machineId])
-            origin_machine_val, target_machine_val = score_mut_change(machinesMap[machineId], app1, machinesMap[origin_machineId])
-            origin_origin_val = machine_cpu_score[origin_machineId]
-            target_origin_val = machine_cpu_score[machineId]
-            diff = (origin_origin_val+target_origin_val) - (origin_machine_val+target_machine_val)
-            # print('mut:', diff)
+                origin_machineId = sortedMachineList[machine_index][0]
+                if len(machine_instances_map[origin_machineId]) == 0:
+                    continue
+                instances = machine_instances_map[origin_machineId]
+                mut_count = 0
+                for instance in instances:
+                    app = appsMap.get(instance.appId)
+                    while True:
+                        target_machine_index = random.randint(0, len(machinesMap) - 1)
+                        target_machineId = sortedMachineList[target_machine_index][0]
+                        if target_machineId != origin_machineId and target_machineId not in target_machines:
+                            break
+                    if tell_mut_constraint(target_machineId, app):
+                        continue
+                    target_machines.append(target_machineId)
+                    change_list.append(
+                        [instance.instanceId, target_machineId, instance, app, origin_machineId])
+                    mut_count += 1
+                diff, origin_val, target_vals = score_mut_change_list(change_list, len(instances), origin_machineId)
+                if mut_count == len(instances):
+                    print('mut 可全部迁移', origin_machineId)
+                break
             if diff > 0:
                 print('mut', val, diff)
                 val += diff
-                for change in change_list:
-                    instance_machine_map[change[0]] = change[1]
-                    mut_update_info(machineId, instance_index1, app1, origin_machineId)
+                index = 0
+                for instanceId, target_machineId, instance, app, origin_machineId in change_list:
+                    instance_machine_map[instanceId] = target_machineId
+                    mut_update_info(target_machineId, instance, app, origin_machineId)
+                    machine_cpu_score[target_machineId] = target_vals[index]
+                    index += 1
+                machine_cpu_score[origin_machineId] = origin_val
+                fit = fitness.fitnessfun(machine_instances_map, machinesMap, appsMap,
+                                         len(instancesMap),
+                                         len(instancesMap))
+                print('fit:', fit, ' 应该为：', (origin_fit-val/T))
                 # break
-                    # else:
-                    #     if exp(df / T) > random.random(0, 1):
-                    #         for change in change_list:
-                    #             instance_machine_map[change[0]] = change[1]
+                # else:
+                #     if exp(df / T) > random.random(0, 1):
+                #         for change in change_list:
+                #             instance_machine_map[change[0]] = change[1]
 
         # T_current = r * T_current
         T_current -= 1
@@ -414,7 +471,40 @@ def sa():
 val = sa()
 print(val)
 
+
 # static_tool.static_machine(machine_instances_map, machinesMap, appsMap)
 fit = fitness.fitnessfun(machine_instances_map, machinesMap, appsMap, len(instancesMap),
                          len(instancesMap))
 print(fit)
+
+_, residual_machine_p, residual_machine_m, residual_machine_pm, \
+residual_machine_disk, residual_machine_cpu, half_residual_machine_cpu, used_machine_cpu, \
+machine_cpu_score, residual_machine_mem, machine_instances_num_map = produce_seed.init_exist_instances(sortedMachineList, cpu_threhold=1)
+
+for machineId, instances in machine_instances_map.items():
+    machine = machinesMap[machineId]
+    for instance in instances:
+        # print('instance:', instance.instanceId)
+        if produce_seed.tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
+            print('不满足disk约束')
+            continue
+        if produce_seed.tell_mem_constraint(instance, machine, appsMap, residual_machine_mem):
+            print('不满足mem约束')
+            continue
+        if produce_seed.tell_app_interference_constraint(instance, machine, appsMap,
+                                            machine_instances_num_map, instance_interferences):
+            print('不满足app interfer约束')
+            continue
+        if produce_seed.tell_m_constraint(instance, machine, appsMap, residual_machine_m):
+            print('不满足m约束')
+            continue
+        if produce_seed.tell_p_constraint(instance, machine, appsMap, residual_machine_p):
+            print('不满足p约束')
+            continue
+        if produce_seed.tell_pm_constraint(instance, machine, appsMap, residual_machine_pm):
+            continue
+        if produce_seed.tell_cpu_constraint(instance, machine, appsMap, half_residual_machine_cpu):
+            print('不满足cpu约束')
+            continue
+
+
