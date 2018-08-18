@@ -104,6 +104,7 @@ def tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
     #     return True
     # return False
     if appsMap[instance.appId].disk > residual_machine_disk[machine.machineId]:
+        print(instance.instanceId, machine.machineId, appsMap[instance.appId].disk, residual_machine_disk[machine.machineId])
         return True
     return False
 
@@ -111,25 +112,17 @@ def tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
 def tell_app_interference_constraint(instance, machine, appsMap, machine_instances_num_map,
                                      instance_interferences, print_info=False):
     instances_num_map = machine_instances_num_map[machine.machineId]
-    # if machine.machineId == 'machine_4697':
-    #     print(instances_num_map)
     # 判断新的app在不在已有的app中的影响数组里
     for appId, num in instances_num_map.items():
         if num == 0:
             continue
         conflictAppMap = instance_interferences.get(appId)
-        # if print_info or instance.instanceId == 'inst_21766':
-        #     print('conflictAppMap:', appId, conflictAppMap)
         if conflictAppMap is None:
             continue
         for appId2, num2 in conflictAppMap.items():
             if instance.appId == appId2:
-                # if instance.instanceId == 'inst_21766':
-                #     print('oooooo', instance.appId, appId, appId2)
                 if appId == appId2:
                     if instances_num_map[appId2] > num2:
-                        # if print_info or instance.instanceId == 'inst_21766':
-                        #     print('-------', instance.appId, instances_num_map[appId], appId2, instances_num_map[appId2])
                         return True
                 else:
                     if print_info:
@@ -138,23 +131,16 @@ def tell_app_interference_constraint(instance, machine, appsMap, machine_instanc
                     if instances_num_map.get(appId2) is not None:
                         count = instances_num_map.get(appId2)
                     if count + 1 > num2:
-                        # if print_info or instance.instanceId == 'inst_21766':
-                        #     print('=======', instance.appId, instances_num_map[appId], appId2,
-                        #       instances_num_map.get(appId2))
                         return True
 
     # 判断新的app的影响数组里，包不包含已有的app
     conflictAppMap = instance_interferences.get(instance.appId)
-    # if print_info or instance.instanceId == 'inst_21766':
-    #     print(instance.appId, conflictAppMap)
     if conflictAppMap is None:
         return False
     # print(conflictAppMap)
     for appId, num in conflictAppMap.items():
         if instances_num_map.get(appId) is not None:
             if instances_num_map[appId] > num:
-                # if print_info or instance.instanceId == 'inst_21766':
-                #     print(instance.appId, appId, instances_num_map.get(instance.appId), instances_num_map.get(appId))
                 return True
     return False
 

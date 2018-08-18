@@ -32,8 +32,13 @@ import numpy as np
 # lengthList = sorted(length_map.items())
 # print(lengthList)
 
-l1 = [1,4,7]
-l2 = [3,5,8]
+l1 = [1, 4, 7]
+l2 = [3, 5, 8]
 l3 = np.array(l1) + np.array(l2)
 print(l3)
-print(l3/0.8)
+print(l3 / 0.8)
+
+for i in range(5, 0, -1):
+    print('=========', i)
+
+print(4 - 3.6)

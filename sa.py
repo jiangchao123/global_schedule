@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 import data_preprocess.data_process as data_process
 import static.static_info as static_tool
+import math
 
 alpha = 10
 beta = 0.5
@@ -358,17 +359,20 @@ def mut_update_info(machineId, instance, app1, origin_machineId):
 
 
 def sa():
-    T_current = 15000
+    T_current = 1000000
     T_min = 50
-    r = 0.8
+    r = 0.9999
     cross_step = 5
     val = 0
+    best_score = 0
+    k = 0.000001
+    iter = 0
     while T_current > T_min:
-        print(T_current, T_min)
+        print(T_current, T_min, iter)
         change_list = []
         diff = 0
         machine_scores = []
-        if random.random() < 0.5:
+        if random.random() < 0.7:
             # 交叉
             step = 0
             change_machines = []
@@ -401,8 +405,8 @@ def sa():
                     if step == cross_step:
                         break
             # print('cross:', diff)
-            if diff > 0:
-                print('cross', val, diff)
+            if diff >= 0:
+                print('better cross', val, diff)
                 val += diff
                 for machineId1, machineId2, instance_index1, instance_index2, app1, app2, machine_val1, machine_val2 in change_list:
                     instance_machine_map[sortedInstanceList[instance_index1][0]] = machineId2
@@ -415,7 +419,26 @@ def sa():
                                          len(instancesMap),
                                          len(instancesMap))
                 print('fit:', fit, ' 应该为：', (origin_fit-val/T))
-                # break
+            else:
+                ratio = diff / (k * T_current)
+                p = math.exp(ratio)
+                random_p = random.random()
+                print('worse cross', val, diff, ratio, p, random_p)
+                if p > random_p:
+                    print('in worse cross', val, diff)
+                    val += diff
+                    for machineId1, machineId2, instance_index1, instance_index2, app1, app2, machine_val1, machine_val2 in change_list:
+                        instance_machine_map[sortedInstanceList[instance_index1][0]] = machineId2
+                        instance_machine_map[sortedInstanceList[instance_index2][0]] = machineId1
+                        cross_update_info(machineId1, machineId2, instance_index1, instance_index2,
+                                          app1,
+                                          app2, machine_val1, machine_val2)
+                        # print(machineId1, origin_val1, machine_val1, machineId2, origin_val2, machine_val2)
+                    fit = fitness.fitnessfun(machine_instances_map, machinesMap, appsMap,
+                                             len(instancesMap),
+                                             len(instancesMap))
+                    print('fit:', fit, ' 应该为：', (origin_fit - val / T))
+
         else:
             # 变异
             target_machines = []
@@ -443,8 +466,8 @@ def sa():
                 if mut_count == len(instances):
                     print('mut 可全部迁移', origin_machineId)
                 break
-            if diff > 0:
-                print('mut', val, diff)
+            if diff >= 0:
+                print('better mut', val, diff)
                 val += diff
                 index = 0
                 for instanceId, target_machineId, instance, app, origin_machineId in change_list:
@@ -457,19 +480,36 @@ def sa():
                                          len(instancesMap),
                                          len(instancesMap))
                 print('fit:', fit, ' 应该为：', (origin_fit-val/T))
-                # break
-                # else:
-                #     if exp(df / T) > random.random(0, 1):
-                #         for change in change_list:
-                #             instance_machine_map[change[0]] = change[1]
+            else:
+                ratio = diff / (k * T_current)
+                p = math.exp(ratio)
+                random_p = random.random()
+                print('worse mut', val, diff, ratio, p, random_p)
+                if p > random_p:
+                    print('enter worse mut', val, diff)
+                    val += diff
+                    index = 0
+                    for instanceId, target_machineId, instance, app, origin_machineId in change_list:
+                        instance_machine_map[instanceId] = target_machineId
+                        mut_update_info(target_machineId, instance, app, origin_machineId)
+                        machine_cpu_score[target_machineId] = target_vals[index]
+                        index += 1
+                    machine_cpu_score[origin_machineId] = origin_val
+                    fit = fitness.fitnessfun(machine_instances_map, machinesMap, appsMap,
+                                             len(instancesMap),
+                                             len(instancesMap))
+                    print('fit:', fit, ' 应该为：', (origin_fit - val / T))
 
         # T_current = r * T_current
-        T_current -= 1
-    return val
+        if val > best_score:
+            best_score = val
+        T_current *= r
+        iter += 1
+    return val, best_score
 
 
-val = sa()
-print(val)
+val, best_score = sa()
+print(val, best_score)
 
 
 # static_tool.static_machine(machine_instances_map, machinesMap, appsMap)

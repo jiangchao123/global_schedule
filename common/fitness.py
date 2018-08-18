@@ -27,6 +27,7 @@ def fitnessfun(machine_instances_map, machinesMap, appsMap, assignSize, instance
     :return:
     """
     notAssignMachineCount = 0
+    instance_count = 0
     total_obj = None
     print('assignSize', assignSize, 'instanceSize', instanceSize)
     if assignSize < instanceSize:
@@ -39,6 +40,7 @@ def fitnessfun(machine_instances_map, machinesMap, appsMap, assignSize, instance
             # print('未分配机器：', machineId, machine)
             notAssignMachineCount += 1
             continue
+        instance_count += len(instances)
         for i in range(T):
             cpu = 0
             for instance in instances:
@@ -52,5 +54,5 @@ def fitnessfun(machine_instances_map, machinesMap, appsMap, assignSize, instance
         else:
             total_obj += val
     total_cost_score = total_obj / T
-    print('共多少台机器未分配实例 ', notAssignMachineCount)
+    print('共多少台机器未分配实例 ', notAssignMachineCount, ' 分配实例数量：', instance_count)
     return total_cost_score
