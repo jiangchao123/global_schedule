@@ -104,7 +104,7 @@ def tell_disk_constraint(instance, machine, appsMap, residual_machine_disk):
     #     return True
     # return False
     if appsMap[instance.appId].disk > residual_machine_disk[machine.machineId]:
-        print(instance.instanceId, machine.machineId, appsMap[instance.appId].disk, residual_machine_disk[machine.machineId])
+        # print(instance.instanceId, machine.machineId, appsMap[instance.appId].disk, residual_machine_disk[machine.machineId])
         return True
     return False
 
@@ -177,7 +177,7 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
     machine_instances_map, residual_machine_p, residual_machine_m, residual_machine_pm, \
     residual_machine_disk, residual_machine_cpu, half_residual_machine_cpu, used_machine_cpu, \
     machine_cpu_score, residual_machine_mem, machine_instances_num_map = init_exist_instances(
-        machinesList, 0.5)
+        machinesList, 1.0)
     assignSize = 0
     app_half_index_map = {}
     app_index_map = {}
@@ -285,8 +285,8 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
             assignSize += 1
             # if machineId == 'machine_249':
             #     print('剩余cpu:', residual_machine_cpu)
-        if assignSize % 100 == 0:
-            print(assignSize)
+        # if assignSize % 100 == 0:
+        #     print(assignSize)
     return machine_instances_map, assignSize
 
 

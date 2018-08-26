@@ -27,27 +27,27 @@ from deap import creator
 from deap import tools
 from scoop import futures
 
+machinesMap, sortedMachineList = data_process.handle_machine(
+    'data/scheduling_preliminary_machine_resources_20180606.csv')
+# for machineId, machine in sortedMachineList:
+#     print(machineId)
+appsMap, sortedAppList = data_process.handle_app(
+    'data/scheduling_preliminary_app_resources_20180606.csv')
+instancesMap, sortedInstanceList = data_process.handle_instance(
+    'data/scheduling_preliminary_instance_deploy_20180606.csv')
+instance_interferences = data_process.handle_app_interference(
+    'data/scheduling_preliminary_app_interference_20180606.csv')
+
 # machinesMap, sortedMachineList = data_process.handle_machine(
-#     'data/scheduling_preliminary_machine_resources_20180606.csv')
+#     'data/b/scheduling_preliminary_b_machine_resources_20180726.csv')
 # for machineId, machine in sortedMachineList:
 #     print(machineId)
 # appsMap, sortedAppList = data_process.handle_app(
-#     'data/scheduling_preliminary_app_resources_20180606.csv')
+#     'data/b/scheduling_preliminary_b_app_resources_20180726.csv')
 # instancesMap, sortedInstanceList = data_process.handle_instance(
-#     'data/scheduling_preliminary_instance_deploy_20180606.csv')
+#     'data/b/scheduling_preliminary_b_instance_deploy_20180726.csv')
 # instance_interferences = data_process.handle_app_interference(
-#     'data/scheduling_preliminary_app_interference_20180606.csv')
-
-machinesMap, sortedMachineList = data_process.handle_machine(
-    'data/b/scheduling_preliminary_b_machine_resources_20180726.csv')
-for machineId, machine in sortedMachineList:
-    print(machineId)
-appsMap, sortedAppList = data_process.handle_app(
-    'data/b/scheduling_preliminary_b_app_resources_20180726.csv')
-instancesMap, sortedInstanceList = data_process.handle_instance(
-    'data/b/scheduling_preliminary_b_instance_deploy_20180726.csv')
-instance_interferences = data_process.handle_app_interference(
-    'data/b/scheduling_preliminary_b_app_interference_20180726.csv')
+#     'data/b/scheduling_preliminary_b_app_interference_20180726.csv')
 
 
 app_possible_machines, instance_possible_machines_length, sorted_instance_possible_machines_length_list = \
@@ -137,7 +137,7 @@ def train_model():
 
 if __name__ == '__main__':
     machine_instances_map = train_model()
-    res_file = open('2018-8-7-b-res.csv', 'w')
+    res_file = open('2018-8-17-a-1.0-res.csv', 'w')
     for machineId, instances in machine_instances_map.items():
         for instance in instances:
             res_file.write(str(instance.instanceId) + ',' + str(machineId) + '\n')

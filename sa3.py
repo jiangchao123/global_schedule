@@ -56,7 +56,7 @@ def read_init_solution(filepath):
     return machine_instances_map, instance_machine_map, fit
 
 
-machine_instances_map, instance_machine_map, fit = read_init_solution('2018-8-7-a-res.csv')
+machine_instances_map, instance_machine_map, fit = read_init_solution('2018-8-17-a-1.0-res.csv')
 # static_tool.static_machine(machine_instances_map, machinesMap, appsMap)
 print(fit)
 origin_fit = fit

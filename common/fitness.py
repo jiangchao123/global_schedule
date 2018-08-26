@@ -55,4 +55,5 @@ def fitnessfun(machine_instances_map, machinesMap, appsMap, assignSize, instance
             total_obj += val
     total_cost_score = total_obj / T
     print('共多少台机器未分配实例 ', notAssignMachineCount, ' 分配实例数量：', instance_count)
+    print('total score:', total_cost_score)
     return total_cost_score

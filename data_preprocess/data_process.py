@@ -113,12 +113,12 @@ def handle_app_interference(filepath):
 
 
 def handle_app_possible_machines(appsMap, sortedInstanceList, sortedMachineList):
-    print('handle_app_possible_machines')
+    # print('handle_app_possible_machines')
     app_possible_machines = {}
     instance_possible_machines_length = []
     instance_possible_machines_length_map = {}
     for appId, app in appsMap.items():
-        print('appid:', appId)
+        # print('appid:', appId)
         app_possible_machines[appId] = []
         count = 0
         for machineId, machine in sortedMachineList:
@@ -146,7 +146,7 @@ def handle_app_possible_machines(appsMap, sortedInstanceList, sortedMachineList)
             if terminate:
                 continue
             app_possible_machines[appId].append(machineId)
-        print('appid:', appId, ' possible machine:', len(app_possible_machines[appId]))
+        # print('appid:', appId, ' possible machine:', len(app_possible_machines[appId]))
     index = 0
     for instanceId, instance in sortedInstanceList:
         # instance_possible_machines_length.append(len(app_possible_machines[instance.appId]))
@@ -160,7 +160,7 @@ def handle_app_possible_machines(appsMap, sortedInstanceList, sortedMachineList)
     for length, instanceIndexs in sorted(instance_possible_machines_length_map.items()):
         instance_possible_machines_length.append([count, count+len(instanceIndexs)-1])
         count += len(instanceIndexs)
-    print('instance_possible_machines_length: ', instance_possible_machines_length)
+    # print('instance_possible_machines_length: ', instance_possible_machines_length)
     return app_possible_machines, instance_possible_machines_length, sorted(
         instance_possible_machines_length_map.items())
 
