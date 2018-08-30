@@ -44,7 +44,7 @@ def compute_cpu_constraint(instance, machine, appsMap, used_machine_cpu, machine
     return increment_score
 
 
-def randomGreedy(jobs, jobsMap, machine_instances_map, machinesMap, appsMap, machinesList):
+def randomGreedy(sortedJobList, jobsMap, machine_instances_map, machinesMap, appsMap, machinesList):
     """
     贪心算法，生成不同的种子
     :param flights:
@@ -55,56 +55,68 @@ def randomGreedy(jobs, jobsMap, machine_instances_map, machinesMap, appsMap, mac
     residual_machine_mem, used_machine_cpu, residual_machine_cpu, machine_apps_num_map, machine_cpu_score = compute_residual_info(
         machine_instances_map, machinesList, machinesMap, appsMap, 1.0)
     assignSize = 0
-    job_half_index_map = {}
-    job_half_time_index_map = {}
-    job_index_map = {}
-    job_time_index_map = {}
     assigned_jobs_end_time = {}
-    for job in jobs:
-
-
+    for jobId, job in sortedJobList:
+        assign_job(job, jobsMap, machine_jobs, assigned_jobs_end_time, residual_machine_cpu,
+                   used_machine_cpu, residual_machine_mem, machinesList)
         assignSize += 1
     return machine_jobs, assignSize
 
 
-def assign_job(job, jobsMap, assigned_jobs_end_time, residual_machine_cpu, used_machine_cpu, residual_machine_mem, machinesList):
+def assign_job(job, jobsMap, machine_jobs, assigned_jobs_end_time, residual_machine_cpu, used_machine_cpu, residual_machine_mem, machinesList):
+    print('assign job:', job.jobId)
     assign_jobs = []
     machine_index = 0
     time_index = 0
     pre_jobs = job.pre_jobs
     start_time = 0
+    max_start_time = 0
     for jobId in pre_jobs:
+
         if assigned_jobs_end_time.get(jobId) is None:
-            assign_job(jobsMap[jobId], jobsMap, assigned_jobs_end_time, residual_machine_cpu, used_machine_cpu, residual_machine_mem, machinesList)
-        end_time = assigned_jobs_end_time.get(start_time)
+            assign_job(jobsMap[jobId], jobsMap, machine_jobs, assigned_jobs_end_time, residual_machine_cpu, used_machine_cpu, residual_machine_mem, machinesList)
+        end_time = assigned_jobs_end_time.get(jobId)
+        print(job.jobId, jobId, pre_jobs, end_time)
         if start_time < end_time:
             start_time = end_time
+    print('start_time: ', start_time)
+    time_index = start_time
     for k in range(job.nums):
         assign = False
         for i in range(machine_index, len(machinesList)):
+            machine = machinesList[i][1]
+            if residual_machine_cpu.get(machine.machineId) is None:
+                continue
             for j in range(time_index, 1470 - job.run_time):
-                machine = machinesList[i][1]
                 if tell_mem_constraint(job, machine, residual_machine_mem, j):
+                    # print('cpu不足')
                     continue
                 if tell_cpu_constraint(job, machine, residual_machine_cpu, j):
+                    # print('mem不足')
                     continue
                 machine_index = i
                 time_index = j
+                if machine_jobs.get((job.jobId, j)) is None:
+                    machine_jobs[(job.jobId, j)] = 0
+                machine_jobs[(job.jobId, j)] += 1
                 assign_jobs.append((job.jobId, machine.machineId, j))
                 assign = True
                 break
             if assign:
                 break
-            time_index = 0
+            time_index = start_time
         if not assign:
-            print('job:', job.jobId, '未能全部安放')
+            print('job:', job.jobId, ' 第', k, '个实例未能全部安放')
 
     for jobId, machineId, start_time in assign_jobs:
+        if max_start_time < start_time:
+            max_start_time = start_time
         for i in range(start_time, start_time + job.run_time):
             residual_machine_cpu[machineId][i] -= job.cpu
             used_machine_cpu[machineId][i] += job.cpu
         for i in range(start_time, start_time + job.run_time):
             residual_machine_mem[machineId][i] -= job.mem
+    assigned_jobs_end_time[job.jobId] = start_time + job.run_time
 
 
 # # 初始化已经在机器上的实例
@@ -144,7 +156,6 @@ def compute_residual_info(machine_instances_map, sortedMachineList, machinesMap,
                           cpu_thresh=1.0):
     machine_apps_num_map = {}
     residual_machine_cpu = {}
-    half_residual_machine_cpu = {}
     used_machine_cpu = {}
     machine_cpu_score = {}
     residual_machine_mem = {}
@@ -152,23 +163,13 @@ def compute_residual_info(machine_instances_map, sortedMachineList, machinesMap,
     residual_machine_p = {}
     residual_machine_m = {}
     residual_machine_pm = {}
-    for machineId, machine in sortedMachineList:
-
+    for machineId, instances in machine_instances_map.items():
         machine_apps_num_map[machineId] = {}
-        instances = machine_instances_map.get(machineId)
-        residual_disk = machinesMap[machineId].disk
-        residual_m = machinesMap[machineId].m
-        residual_p = machinesMap[machineId].p
-        residual_pm = machinesMap[machineId].pm
         residual_cpus = [machinesMap[machineId].cpu for i in range(T * 15)]
         used_machine_cpu[machineId] = [0 for i in range(T * 15)]
         residual_mems = [machinesMap[machineId].mem for i in range(T * 15)]
-        machine_cpu_score[machineId] = compute_machine_score(instances, machine, appsMap)
+        machine_cpu_score[machineId] = compute_machine_score(instances, machinesMap[machineId], appsMap)
         for instance in instances:
-            residual_disk -= appsMap[instance.appId].disk
-            residual_m -= appsMap[instance.appId].m
-            residual_p -= appsMap[instance.appId].p
-            residual_pm -= appsMap[instance.appId].pm
             for i in range(T):
                 for j in range(15):
                     residual_cpus[i * j + j] -= appsMap[instance.appId].cpus[i]
@@ -180,10 +181,6 @@ def compute_residual_info(machine_instances_map, sortedMachineList, machinesMap,
                 machine_apps_num_map[machineId][instance.appId] = 1
             else:
                 machine_apps_num_map[machineId][instance.appId] += 1
-        residual_machine_disk[machineId] = residual_disk
-        residual_machine_m[machineId] = residual_m
-        residual_machine_p[machineId] = residual_p
-        residual_machine_pm[machineId] = residual_pm
         residual_machine_mem[machineId] = residual_mems
         residual_machine_cpu[machineId] = residual_cpus
     return residual_machine_p, residual_machine_m, residual_machine_pm, residual_machine_disk, \
