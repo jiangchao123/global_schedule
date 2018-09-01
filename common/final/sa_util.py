@@ -13,19 +13,71 @@ Software: PyCharm Community Edition
 
 """
 import numpy as np
+import common.final.constraints_util as constraints_util
 
 alpha = 10
 beta = 0.5
 T = 98
 
 
-def select_sa_machines(assigned_machines_instances_map, unassigned_machineIds, nums, machinesMap):
+def select_sa_machines(assigned_machines_instances_map, unassigned_machineIds, nums, machinesMap,
+                       sortedMachineList, appsMap, instance_interferences):
     new_machinesMap = {}
+    total_instances_count = 0
+    # 要补充的机器数量
     need_add_machines_nums = nums - len(assigned_machines_instances_map)
+    # new_machines_instances_map = {}
+    # 补充的空机器
+    add_machines = []
     for i in range(0, need_add_machines_nums):
         assigned_machines_instances_map[unassigned_machineIds[i]] = []
+        add_machines.append(unassigned_machineIds[i])
+        # new_machines_instances_map[unassigned_machineIds[i]] = []
     for machineId, instances in assigned_machines_instances_map.items():
+        total_instances_count += len(instances)
         new_machinesMap[machineId] = machinesMap[machineId]
+    print('扩展前实例数量:', total_instances_count, ' 预计使用机器数量：', len(assigned_machines_instances_map))
+    mean_instances_count = int(total_instances_count / nums)
+    # 均匀扩展实例
+    # new_machine_index = 0
+    residual_machine_p, residual_machine_m, residual_machine_pm, residual_machine_disk, \
+    residual_machine_mem, used_machine_cpu, residual_machine_cpu, machine_apps_num_map, machine_cpu_score = compute_residual_info(
+        assigned_machines_instances_map, sortedMachineList, machinesMap, appsMap)
+    # app可存放的最早机器下标
+    app_machine_index = {}
+    for machineId, instances in assigned_machines_instances_map.items():
+        print('扩展机器:', machineId)
+        if len(instances) <= mean_instances_count:
+            continue
+        if machineId in add_machines:
+            continue
+        for i in range(mean_instances_count, len(instances)):
+            app = appsMap[instances[i].appId]
+            index = 0
+            if app_machine_index.get(app.appId) is not None:
+                index = app_machine_index[app.appId]
+            for j in range(index, len(add_machines)):
+                machineId2 = add_machines[j]
+                if len(assigned_machines_instances_map[machineId2]) >= mean_instances_count:
+                    continue
+                if constraints_util.tell_mut_constraint(machineId2, app,
+                                                        residual_machine_p, residual_machine_m,
+                                                        residual_machine_pm,
+                                                        residual_machine_disk, residual_machine_mem,
+                                                        machine_apps_num_map,
+                                                        instance_interferences,
+                                                        residual_machine_cpu, has_cpu=True):
+                    mut_update_info(machineId2, instances[i], app,
+                                    machineId,
+                                    assigned_machines_instances_map,
+                                    residual_machine_p, residual_machine_m, residual_machine_pm,
+                                    residual_machine_disk, used_machine_cpu, residual_machine_mem,
+                                    machine_apps_num_map, residual_machine_cpu)
+                    app_machine_index[app.appId] = j
+                    break
+    for machineId, instances in assigned_machines_instances_map.items():
+        total_instances_count += len(instances)
+    print('扩展前实例数量:', total_instances_count, ' 使用机器数量：', len(assigned_machines_instances_map))
     return assigned_machines_instances_map, new_machinesMap, sorted(new_machinesMap.items(),
                                                                     key=lambda d: d[1].cpu,
                                                                     reverse=True)
@@ -216,7 +268,7 @@ def cross_update_info(machineId1, machineId2, instance_index1, instance_index2, 
 def mut_update_info(machineId, instance, app1, origin_machineId, machine_instances_map,
                     residual_machine_p, residual_machine_m, residual_machine_pm,
                     residual_machine_disk, used_machine_cpu, residual_machine_mem,
-                    machine_apps_num_map):
+                    machine_apps_num_map, residual_machine_cpu):
     machine_instances_map[machineId].append(instance)
     machine_instances_map[origin_machineId].remove(instance)
     residual_machine_p[machineId] -= app1.p
@@ -230,7 +282,9 @@ def mut_update_info(machineId, instance, app1, origin_machineId, machine_instanc
     residual_machine_disk[origin_machineId] += app1.disk
     for i in range(T):
         used_machine_cpu[machineId][i] += app1.cpus[i]
+        residual_machine_cpu[machineId][i] -= app1.cpus[i]
         used_machine_cpu[origin_machineId][i] -= app1.cpus[i]
+        residual_machine_cpu[origin_machineId][i] += app1.cpus[i]
     for i in range(T):
         residual_machine_mem[machineId][i] -= app1.mems[i]
         residual_machine_mem[origin_machineId][i] += app1.mems[i]
