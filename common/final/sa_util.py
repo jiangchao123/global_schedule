@@ -21,7 +21,9 @@ T = 98
 
 
 def select_sa_machines(assigned_machines_instances_map, unassigned_machineIds, nums, machinesMap,
-                       sortedMachineList, appsMap, instance_interferences):
+                       sortedMachineList, appsMap, instance_interferences, instance_machine_map):
+    print('machine_2 999:', assigned_machines_instances_map.get('machine_2'))
+    # instance_machine_map = {}
     new_machinesMap = {}
     total_instances_count = 0
     # 要补充的机器数量
@@ -39,46 +41,61 @@ def select_sa_machines(assigned_machines_instances_map, unassigned_machineIds, n
     print('扩展前实例数量:', total_instances_count, ' 预计使用机器数量：', len(assigned_machines_instances_map))
     mean_instances_count = int(total_instances_count / nums)
     # 均匀扩展实例
-    # new_machine_index = 0
+    new_machine_index = 0
     residual_machine_p, residual_machine_m, residual_machine_pm, residual_machine_disk, \
     residual_machine_mem, used_machine_cpu, residual_machine_cpu, machine_apps_num_map, machine_cpu_score = compute_residual_info(
         assigned_machines_instances_map, sortedMachineList, machinesMap, appsMap)
     # app可存放的最早机器下标
     app_machine_index = {}
+    print('machine_2:', assigned_machines_instances_map.get('machine_2'))
     for machineId, instances in assigned_machines_instances_map.items():
-        print('扩展机器:', machineId)
         if len(instances) <= mean_instances_count:
             continue
         if machineId in add_machines:
             continue
+        # print('扩展机器:', machineId)
+        be_deleted_instances = []
         for i in range(mean_instances_count, len(instances)):
-            app = appsMap[instances[i].appId]
+            be_deleted_instances.append(instances[i])
+        for instance in be_deleted_instances:
+            app = appsMap[instance.appId]
             index = 0
             if app_machine_index.get(app.appId) is not None:
                 index = app_machine_index[app.appId]
-            for j in range(index, len(add_machines)):
+            for j in range(new_machine_index, len(add_machines)):
                 machineId2 = add_machines[j]
+                # if 'machine_2' == machineId2:
+                #     print('尝试将', machineId, '的实例', instance.instanceId, '放入机器', machineId2)
                 if len(assigned_machines_instances_map[machineId2]) >= mean_instances_count:
                     continue
-                if constraints_util.tell_mut_constraint(machineId2, app,
+                # if 'machine_2' == machineId2:
+                #     print('验证约束')
+                if not constraints_util.tell_mut_constraint(machineId2, app,
                                                         residual_machine_p, residual_machine_m,
                                                         residual_machine_pm,
                                                         residual_machine_disk, residual_machine_mem,
                                                         machine_apps_num_map,
                                                         instance_interferences,
                                                         residual_machine_cpu, has_cpu=True):
-                    mut_update_info(machineId2, instances[i], app,
+                    # if 'machine_2' == machineId2:
+                    #     print(machineId2, machineId, instances[i].instanceId)
+                    mut_update_info(machineId2, instance, app,
                                     machineId,
                                     assigned_machines_instances_map,
                                     residual_machine_p, residual_machine_m, residual_machine_pm,
                                     residual_machine_disk, used_machine_cpu, residual_machine_mem,
                                     machine_apps_num_map, residual_machine_cpu)
                     app_machine_index[app.appId] = j
+                    instance_machine_map[instance.instanceId] = machineId2
                     break
+                else:
+                    new_machine_index += 1
+    print('machine_2 00000:', len(assigned_machines_instances_map.get('machine_2')))
+    total_instances_count = 0
     for machineId, instances in assigned_machines_instances_map.items():
         total_instances_count += len(instances)
-    print('扩展前实例数量:', total_instances_count, ' 使用机器数量：', len(assigned_machines_instances_map))
-    return assigned_machines_instances_map, new_machinesMap, sorted(new_machinesMap.items(),
+    print('扩展后实例数量:', total_instances_count, ' 使用机器数量：', len(assigned_machines_instances_map))
+    return assigned_machines_instances_map, instance_machine_map, new_machinesMap, sorted(new_machinesMap.items(),
                                                                     key=lambda d: d[1].cpu,
                                                                     reverse=True)
 

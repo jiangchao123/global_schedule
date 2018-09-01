@@ -47,7 +47,7 @@ def fitnessfun(machine_instances_map, machinesMap, appsMap, assignSize, instance
                 app = appsMap[instance.appId]
                 cpu += app.cpus[i]
             cpuUseRate = cpu / machine.cpu
-            s = 1 + alpha * (np.e ** max(0, cpuUseRate - beta) - 1)
+            s = 1 + len(instances) * (np.e ** max(0, cpuUseRate - beta) - 1)
             val += s
         if total_obj is None:
             total_obj = val

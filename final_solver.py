@@ -20,7 +20,7 @@ import common.final.constraints_util as constraints_util
 def sa(instancesMap, appsMap, sortedInstanceList, sortedMachineList, instance_machine_map,
        machinesMap, machine_cpu_score, residual_machine_p, residual_machine_m,
        residual_machine_pm, residual_machine_disk, residual_machine_mem,
-       machine_apps_num_map, instance_interferences, machine_instances_map, used_machine_cpu):
+       machine_apps_num_map, instance_interferences, machine_instances_map, used_machine_cpu, residual_machine_cpu):
     T_current = 150000
     T_min = 50
     r = 0.8
@@ -101,7 +101,8 @@ def sa(instancesMap, appsMap, sortedInstanceList, sortedMachineList, instance_ma
                                                             residual_machine_disk,
                                                             residual_machine_mem,
                                                             machine_apps_num_map,
-                                                            instance_interferences):
+                                                            instance_interferences,
+                                                            residual_machine_cpu):
                     break
             change_list.append([sortedInstanceList[instance_index1][0], machineId])
             origin_machine_val, target_machine_val = sa_util.score_mut_change(
@@ -123,7 +124,7 @@ def sa(instancesMap, appsMap, sortedInstanceList, sortedMachineList, instance_ma
                                             residual_machine_pm,
                                             residual_machine_disk, used_machine_cpu,
                                             residual_machine_mem,
-                                            machine_apps_num_map)
+                                            machine_apps_num_map, residual_machine_cpu)
                 machine_cpu_score[machineId] = target_machine_val
                 machine_cpu_score[origin_machineId] = origin_machine_val
         T_current -= 1

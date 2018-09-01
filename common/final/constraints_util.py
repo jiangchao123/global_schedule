@@ -92,7 +92,7 @@ def tell_cross_constraint(machineId1, machineId2, app1, app2, residual_machine_p
 
 def tell_mut_constraint(machineId, app, residual_machine_p, residual_machine_m, residual_machine_pm,
                         residual_machine_disk, residual_machine_mem, machine_apps_num_map,
-                        instance_interferences):
+                        instance_interferences, residual_machine_cpu, has_cpu=False):
     if residual_machine_p[machineId] < app.p:
         return True
     if residual_machine_m[machineId] < app.m:
@@ -104,6 +104,9 @@ def tell_mut_constraint(machineId, app, residual_machine_p, residual_machine_m, 
     for i in range(T):
         if residual_machine_mem[machineId][i] < app.mems[i]:
             return True
+        if has_cpu:
+            if residual_machine_cpu[machineId][i] < app.cpus[i]:
+                return True
     if tell_app_interference_constraint(app, machineId, machine_apps_num_map,
                                         instance_interferences):
         return True
@@ -116,6 +119,9 @@ def post_check(machinesMap, sortedMachineList, machine_instances_map, appsMap, i
     machine_cpu_score, residual_machine_mem, machine_instances_num_map = produce_seed.init_exist_instances(
         sortedMachineList, cpu_threhold=1)
     for machineId, instances in machine_instances_map.items():
+        if machinesMap.get(machineId) is None:
+            # print('instances 数量', len(instances))
+            continue
         machine = machinesMap[machineId]
         for instance in instances:
             # print('instance:', instance.instanceId)

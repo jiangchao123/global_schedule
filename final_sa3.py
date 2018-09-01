@@ -13,18 +13,11 @@ Software: PyCharm Community Edition
 
 """
 import common.final.fitness as fitness
-import common.final.produce_seed as produce_seed
-
-from common.exe_time import exeTime
-import array
-import random
-import numpy as np
-import pandas as pd
 import data_preprocess.data_process as data_process
-import static.static_info as static_tool
-import math
 import final_solver as final_solver
 import common.final.sa_util as sa_util
+import common.final.init_state as init_state_util
+import common.final.constraints_util as constraints_util
 
 alpha = 10
 beta = 0.5
@@ -45,40 +38,9 @@ instance_interferences = data_process.handle_app_interference(
 
 jobsMap, sortedJobList = data_process.handle_job('data/final/job_info.' + data_name + '.csv')
 
-
-def read_init_solution(sortedInstanceList):
-    machine_instances_map = {}
-    unassigned_machines = {}
-    assigned_machines_instances_map = {}
-    unassigned_machineIds = []
-    instance_machine_map = {}
-    for machineId, machine in sortedMachineList:
-        machine_instances_map[machineId] = []
-    unassigned_instances = []
-    assign_count = 0
-    for instanceId, instance in sortedInstanceList:
-        if instance.machineId is None:
-            unassigned_instances.append(instanceId)
-        else:
-            assign_count += 1
-            instance.final_machineId = instance.machineId
-            instance_machine_map[instanceId] = instance.machineId
-            machine_instances_map[instance.machineId].append(instance)
-
-    fit = fitness.fitnessfun(machine_instances_map, machinesMap, appsMap, assign_count,
-                             len(instancesMap))
-    for machineId, instances in machine_instances_map.items():
-        if len(instances) == 0:
-            unassigned_machines[machineId] = []
-            unassigned_machineIds.append(machineId)
-        else:
-            assigned_machines_instances_map[machineId] = instances
-    print('已使用机器数量:', len(assigned_machines_instances_map))
-    return machine_instances_map, instance_machine_map, fit, unassigned_machines, unassigned_machineIds, assigned_machines_instances_map
-
-
-machine_instances_map, instance_machine_map, fit, unassigned_machines, unassigned_machineIds, assigned_machines_instances_map = read_init_solution(
-    sortedInstanceList)
+machine_instances_map, instance_machine_map, fit, unassigned_machines, unassigned_machineIds, \
+assigned_machines_instances_map = init_state_util.read_init_solution(
+    sortedInstanceList, sortedMachineList, machinesMap, appsMap, instancesMap)
 print(fit)
 origin_fit = fit
 
@@ -94,9 +56,14 @@ origin_fit = fit
 # res_file.close()
 
 ####### second version ##########
-assigned_machines_instances_map, machinesMap, sortedMachineList = sa_util.select_sa_machines(
+assigned_machines_instances_map, instance_machine_map, machinesMap, sortedMachineList = sa_util.select_sa_machines(
     assigned_machines_instances_map,
-    unassigned_machineIds, 5000, machinesMap)
+    unassigned_machineIds, 5000, machinesMap, sortedMachineList, appsMap, instance_interferences, instance_machine_map)
+
+fit = fitness.fitnessfun(assigned_machines_instances_map, machinesMap, appsMap, len(instancesMap),
+                         len(instancesMap))
+print('扩展机器后得分：', fit)
+
 residual_machine_p, residual_machine_m, residual_machine_pm, residual_machine_disk, \
 residual_machine_mem, used_machine_cpu, residual_machine_cpu, machine_apps_num_map, machine_cpu_score = sa_util.compute_residual_info(
     assigned_machines_instances_map, sortedMachineList, machinesMap, appsMap)
@@ -107,14 +74,16 @@ val, best_score = final_solver.sa(instancesMap, appsMap, sortedInstanceList, sor
                                   residual_machine_m,
                                   residual_machine_pm, residual_machine_disk, residual_machine_mem,
                                   machine_apps_num_map, instance_interferences,
-                                  machine_instances_map, used_machine_cpu)
+                                  assigned_machines_instances_map, used_machine_cpu,
+                                  residual_machine_cpu)
 print(val, best_score)
 
 # static_tool.static_machine(machine_instances_map, machinesMap, appsMap)
-fit = fitness.fitnessfun(machine_instances_map, machinesMap, appsMap, len(instancesMap),
+fit = fitness.fitnessfun(assigned_machines_instances_map, machinesMap, appsMap, len(instancesMap),
                          len(instancesMap))
 print(fit)
 
-sa_util.post_check(machinesMap, sortedMachineList, machine_instances_map, appsMap,
-                   instance_interferences)
-sa_util.generate_origin_result(machine_instances_map, '8-31', data_name)
+constraints_util.post_check(machinesMap, sortedMachineList, assigned_machines_instances_map,
+                            appsMap,
+                            instance_interferences)
+sa_util.generate_origin_result(assigned_machines_instances_map, '8-31', data_name)
