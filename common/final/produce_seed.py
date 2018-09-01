@@ -64,6 +64,8 @@ def randomGreedy(sortedJobList, jobsMap, machine_instances_map, machinesMap, app
 
 
 def assign_job(job, jobsMap, machine_jobs, assigned_jobs_end_time, residual_machine_cpu, used_machine_cpu, residual_machine_mem, machinesList):
+    if assigned_jobs_end_time.get(job.jobId) is not None:
+        return
     print('assign job:', job.jobId)
     assign_jobs = []
     machine_index = 0
@@ -72,22 +74,21 @@ def assign_job(job, jobsMap, machine_jobs, assigned_jobs_end_time, residual_mach
     start_time = 0
     max_start_time = 0
     for jobId in pre_jobs:
-
         if assigned_jobs_end_time.get(jobId) is None:
             assign_job(jobsMap[jobId], jobsMap, machine_jobs, assigned_jobs_end_time, residual_machine_cpu, used_machine_cpu, residual_machine_mem, machinesList)
         end_time = assigned_jobs_end_time.get(jobId)
-        print(job.jobId, jobId, pre_jobs, end_time)
+        # print(job.jobId, jobId, pre_jobs, end_time)
         if start_time < end_time:
             start_time = end_time
-    print('start_time: ', start_time)
+    # print('start_time: ', start_time)
     time_index = start_time
     for k in range(job.nums):
         assign = False
-        for i in range(machine_index, len(machinesList)):
-            machine = machinesList[i][1]
-            if residual_machine_cpu.get(machine.machineId) is None:
-                continue
-            for j in range(time_index, 1470 - job.run_time):
+        for j in range(time_index, 1470 - job.run_time):
+            for i in range(machine_index, len(machinesList)):
+                machine = machinesList[i][1]
+                if residual_machine_cpu.get(machine.machineId) is None:
+                    continue
                 if tell_mem_constraint(job, machine, residual_machine_mem, j):
                     # print('cpu不足')
                     continue
@@ -96,27 +97,27 @@ def assign_job(job, jobsMap, machine_jobs, assigned_jobs_end_time, residual_mach
                     continue
                 machine_index = i
                 time_index = j
-                if machine_jobs.get((job.jobId, j)) is None:
-                    machine_jobs[(job.jobId, j)] = 0
-                machine_jobs[(job.jobId, j)] += 1
+                if machine_jobs.get((machine.machineId, job.jobId, j)) is None:
+                    machine_jobs[(machine.machineId, job.jobId, j)] = 0
+                machine_jobs[(machine.machineId, job.jobId, j)] += 1
                 assign_jobs.append((job.jobId, machine.machineId, j))
+                for i in range(start_time, start_time + job.run_time):
+                    residual_machine_cpu[machine.machineId][i] -= job.cpu
+                    used_machine_cpu[machine.machineId][i] += job.cpu
+                for i in range(start_time, start_time + job.run_time):
+                    residual_machine_mem[machine.machineId][i] -= job.mem
                 assign = True
                 break
             if assign:
                 break
-            time_index = start_time
+            machine_index = 0
         if not assign:
             print('job:', job.jobId, ' 第', k, '个实例未能全部安放')
 
     for jobId, machineId, start_time in assign_jobs:
         if max_start_time < start_time:
             max_start_time = start_time
-        for i in range(start_time, start_time + job.run_time):
-            residual_machine_cpu[machineId][i] -= job.cpu
-            used_machine_cpu[machineId][i] += job.cpu
-        for i in range(start_time, start_time + job.run_time):
-            residual_machine_mem[machineId][i] -= job.mem
-    assigned_jobs_end_time[job.jobId] = start_time + job.run_time
+    assigned_jobs_end_time[job.jobId] = max_start_time + job.run_time
 
 
 # # 初始化已经在机器上的实例

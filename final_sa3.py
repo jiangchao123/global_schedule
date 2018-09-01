@@ -28,18 +28,20 @@ alpha = 10
 beta = 0.5
 T = 98
 
+data_name = 'd'
+
 machinesMap, sortedMachineList = data_process.handle_machine(
-    'data/final/machine_resources.a.csv')
+    'data/final/machine_resources.' + data_name + '.csv')
 for machineId, machine in sortedMachineList:
     print(machineId)
 appsMap, sortedAppList = data_process.handle_app(
     'data/final/app_resources.csv')
 instancesMap, sortedInstanceList = data_process.handle_instance(
-    'data/final/instance_deploy.a.csv')
+    'data/final/instance_deploy.' + data_name + '.csv')
 instance_interferences = data_process.handle_app_interference(
     'data/final/app_interference.csv')
 
-jobsMap, sortedJobList = data_process.handle_job('data/final/job_info.a.csv')
+jobsMap, sortedJobList = data_process.handle_job('data/final/job_info.' + data_name + '.csv')
 
 
 def read_init_solution(sortedInstanceList):
@@ -67,19 +69,18 @@ def read_init_solution(sortedInstanceList):
     return machine_instances_map, instance_machine_map, fit, unassigned_machines
 
 
-machine_instances_map, instance_machine_map, fit, unassigned_machines = read_init_solution(sortedInstanceList)
+machine_instances_map, instance_machine_map, fit, unassigned_machines = read_init_solution(
+    sortedInstanceList)
 print(fit)
 origin_fit = fit
 
+machine_jobs, _ = produce_seed.randomGreedy(sortedJobList, jobsMap, unassigned_machines,
+                                            machinesMap, appsMap, sortedMachineList)
 
-# residual_machine_p, residual_machine_m, residual_machine_pm, residual_machine_disk, \
-# residual_machine_mem, used_machine_cpu, residual_machine_cpu, machine_apps_num_map, machine_cpu_score = compute_residual_info(
-#     machine_instances_map)
-
-
-machine_jobs, _ = produce_seed.randomGreedy(sortedJobList, jobsMap, unassigned_machines, machinesMap, appsMap, sortedMachineList)
-
-res_file = open('2018-8-29-final-a-1.0-res.csv', 'w')
-for (machineId, jobId, start_timme), nums in machine_jobs:
-    res_file.write(str(jobId) + ',' + str(machineId) + str(start_timme) + str(nums) + '\n')
+res_file = open('2018-8-29-final-' + data_name + '-1.0-res.csv', 'w')
+cpu = 0
+mem = 0
+for (machineId, jobId, start_timme), nums in machine_jobs.items():
+    res_file.write(
+        str(jobId) + ',' + str(machineId) + ',' + str(start_timme) + ',' + str(nums) + '\n')
 res_file.close()
