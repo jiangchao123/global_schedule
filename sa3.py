@@ -274,7 +274,7 @@ def score_mut_change_list(change_list, max_count, origin_machineId):
         for i in range(T):
             for instanceId, target_machineId, instance, app, origin_machineId in change_list:
                 cpus[i] -= app.cpus[i]
-            cpuUseRate = cpus[i] / machine.cpu
+            cpuUseRate = cpus[i] / machinesMap[origin_machineId].cpu
             s = 1 + alpha * (np.e ** max(0, cpuUseRate - beta) - 1)
             origin_machine_val += s
         for i in range(T):
@@ -286,7 +286,7 @@ def score_mut_change_list(change_list, max_count, origin_machineId):
         cpus = used_machine_cpu[target_machineId]
         for i in range(T):
             cpus[i] += app.cpus[i]
-            cpuUseRate = cpus[i] / machine.cpu
+            cpuUseRate = cpus[i] / machinesMap[target_machineId].cpu
             s = 1 + alpha * (np.e ** max(0, cpuUseRate - beta) - 1)
             target_tmp_val += s
             cpus[i] -= app.cpus[i]

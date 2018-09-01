@@ -18,6 +18,7 @@ import common.string_util as string_util
 import bean.app as bean_app
 import bean.instance as bean_instance
 import numpy as np
+import bean.job as bean_job
 
 T = 98
 
@@ -146,7 +147,7 @@ def handle_app_possible_machines(appsMap, sortedInstanceList, sortedMachineList)
             if terminate:
                 continue
             app_possible_machines[appId].append(machineId)
-        # print('appid:', appId, ' possible machine:', len(app_possible_machines[appId]))
+            # print('appid:', appId, ' possible machine:', len(app_possible_machines[appId]))
     index = 0
     for instanceId, instance in sortedInstanceList:
         # instance_possible_machines_length.append(len(app_possible_machines[instance.appId]))
@@ -158,10 +159,36 @@ def handle_app_possible_machines(appsMap, sortedInstanceList, sortedMachineList)
         index += 1
     count = 0
     for length, instanceIndexs in sorted(instance_possible_machines_length_map.items()):
-        instance_possible_machines_length.append([count, count+len(instanceIndexs)-1])
+        instance_possible_machines_length.append([count, count + len(instanceIndexs) - 1])
         count += len(instanceIndexs)
     # print('instance_possible_machines_length: ', instance_possible_machines_length)
     return app_possible_machines, instance_possible_machines_length, sorted(
         instance_possible_machines_length_map.items())
 
+
 # handle_machine('../data/scheduling_preliminary_machine_resources_20180606.csv')
+
+def handle_job(filepath):
+    """
+    加载应用列表文件
+    :param filepath:
+    :return:
+    """
+    data_set = open(filepath)
+    jobsMap = {}
+    for line in data_set:
+        row = line.strip('\n').split(',')
+        pre_jobs = []
+        jobId = row[0]
+        cpu = float(row[1])
+        mem = float(row[2])
+        nums = int(row[3])
+        run_time = int(row[4])
+        for i in range(5, len(row)):
+            pre_jobid = row[i]
+            if pre_jobid is not None and pre_jobid != '':
+                pre_jobs.append(pre_jobid)
+        if jobId not in jobsMap:
+            job = bean_job.Job(jobId, cpu, mem, nums, run_time, pre_jobs)
+            jobsMap[jobId] = job
+    return jobsMap, sorted(jobsMap.items())
