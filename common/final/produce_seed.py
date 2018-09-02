@@ -44,7 +44,7 @@ def compute_cpu_constraint(instance, machine, appsMap, used_machine_cpu, machine
     return increment_score
 
 
-def randomGreedy(sortedJobList, jobsMap, machine_instances_map, machinesMap, appsMap, machinesList):
+def randomGreedy(sortedJobList, jobsMap, machine_instances_map, machinesMap, appsMap, machinesList, cpu_thresh=1.0):
     """
     贪心算法，生成不同的种子
     :param flights:
@@ -53,7 +53,7 @@ def randomGreedy(sortedJobList, jobsMap, machine_instances_map, machinesMap, app
     machine_jobs = {}
     residual_machine_p, residual_machine_m, residual_machine_pm, residual_machine_disk, \
     residual_machine_mem, used_machine_cpu, residual_machine_cpu, machine_apps_num_map, machine_cpu_score = compute_residual_info(
-        machine_instances_map, machinesList, machinesMap, appsMap, 1.0)
+        machine_instances_map, machinesList, machinesMap, appsMap, cpu_thresh)
     assignSize = 0
     assigned_jobs_end_time = {}
     for jobId, job in sortedJobList:
