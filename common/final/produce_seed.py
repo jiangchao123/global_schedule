@@ -56,6 +56,8 @@ def randomGreedy(sortedJobList, jobsMap, machine_instances_map, machinesMap, app
         machine_instances_map, machinesList, machinesMap, appsMap, cpu_thresh)
     assignSize = 0
     assigned_jobs_end_time = {}
+    # 记录没有前序任务的，最后的比较位置，key为（cpu, mem), value为（time, machine）
+    # assigned_jobs_begin_index_map = {}
     for jobId, job in sortedJobList:
         assign_job(job, jobsMap, machine_jobs, assigned_jobs_end_time, residual_machine_cpu,
                    used_machine_cpu, residual_machine_mem, machinesList)
@@ -66,7 +68,9 @@ def randomGreedy(sortedJobList, jobsMap, machine_instances_map, machinesMap, app
 def assign_job(job, jobsMap, machine_jobs, assigned_jobs_end_time, residual_machine_cpu, used_machine_cpu, residual_machine_mem, machinesList):
     if assigned_jobs_end_time.get(job.jobId) is not None:
         return
-    print('assign job:', job.jobId)
+    # print('assign job:', job.jobId)
+    if '9487-8' == job.jobId:
+        print('job.jobId:', '9487-8')
     assign_jobs = []
     machine_index = 0
     time_index = 0
@@ -89,11 +93,11 @@ def assign_job(job, jobsMap, machine_jobs, assigned_jobs_end_time, residual_mach
                 machine = machinesList[i][1]
                 if residual_machine_cpu.get(machine.machineId) is None:
                     continue
-                if tell_mem_constraint(job, machine, residual_machine_mem, j):
-                    # print('cpu不足')
-                    continue
                 if tell_cpu_constraint(job, machine, residual_machine_cpu, j):
                     # print('mem不足')
+                    continue
+                if tell_mem_constraint(job, machine, residual_machine_mem, j):
+                    # print('cpu不足')
                     continue
                 machine_index = i
                 time_index = j
@@ -101,10 +105,13 @@ def assign_job(job, jobsMap, machine_jobs, assigned_jobs_end_time, residual_mach
                     machine_jobs[(machine.machineId, job.jobId, j)] = 0
                 machine_jobs[(machine.machineId, job.jobId, j)] += 1
                 assign_jobs.append((job.jobId, machine.machineId, j))
-                for i in range(start_time, start_time + job.run_time):
+                if '9487-8' == job.jobId:
+                    if 'machine_3681' == machine.machineId:
+                        print('-------------------将job', job.jobId, '放置在机器：', machine.machineId, ' 在时刻:', j, residual_machine_cpu[machine.machineId])
+                for i in range(j, j + job.run_time):
                     residual_machine_cpu[machine.machineId][i] -= job.cpu
                     used_machine_cpu[machine.machineId][i] += job.cpu
-                for i in range(start_time, start_time + job.run_time):
+                for i in range(j, j + job.run_time):
                     residual_machine_mem[machine.machineId][i] -= job.mem
                 assign = True
                 break

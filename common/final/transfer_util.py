@@ -25,6 +25,8 @@ def transfer(origin_assigned_machines_instances_map, assigned_machines_instances
     last_used_machines = []
     # 新使用的机器
     new_used_machines = []
+    # 最终实例对应的机器
+    instance_machine_map = {}
 
     # first_round
     first_rounds = []
@@ -35,10 +37,13 @@ def transfer(origin_assigned_machines_instances_map, assigned_machines_instances
     # 设计实例的目标机器
     for machineId, instances in assigned_machines_instances_map.items():
         for instance in instances:
-            instance.final_machineId = machineId
+            instance_machine_map[instance.instanceId] = machineId
 
+    count = 0
     for machineId, instances in origin_assigned_machines_instances_map.items():
         origin_used_machines.append(machineId)
+        count += len(instances)
+    # print('原始实例数量:', count)
     for machineId, machine in origin_machinesMap.items():
         if assigned_machines_instances_map.get(machineId) is None or len(
                 assigned_machines_instances_map.get(machineId)) == 0:
@@ -55,29 +60,57 @@ def transfer(origin_assigned_machines_instances_map, assigned_machines_instances
         if machineId in new_used_machines:
             for instance in instances:
                 first_rounds.append([instance.instanceId, machineId])
-                new_used_machine_instances.append(instance)
+                new_used_machine_instances.append(instance.instanceId)
+    print('first 1 rounds:', len(first_rounds), print(len(new_used_machine_instances)))
 
     # 开始迁移第一.2步：将实例先放置于未使用机器；
-    transfer_instances = []
-    for machineId, instances in origin_assigned_machines_instances_map.items():
-        for instance in instances:
-            if instance.machineId != instance.final_machineId:
-                transfer_instances.append(instance)
     transfer_machineList = []
     for machineId, machine in origin_sortedMachineList:
         if machineId in last_unused_machines:
             transfer_machineList.append((machineId, machine))
+            # print('transfer_machineList:', machineId)
 
-    transfer_machine_instances_map, assignSize = produce_seed.randomGreedy(transfer_instances,
-                                                                           appsMap,
-                                                                           transfer_machineList,
-                                                                           instance_interferences)
-    print('transfer size:', len(transfer_instances), ' final transfer size:', assignSize)
+    sorted_origin_assigned_machines_instances_map = sorted(
+        origin_assigned_machines_instances_map.items(), key=lambda d: origin_machinesMap[d[0]].cpu,
+        reverse=True)
+    transfer_instances = []
+    # 先进行等价机器映射
+    transfer_machine_instances_map = {}
+    index = 0
+    for machineId, instances in sorted_origin_assigned_machines_instances_map:
+        # print(machineId)
+        tmp_instances = []
+        # print(len(instances))
+        for instance in instances:
+            if machineId != instance_machine_map[instance.instanceId]:
+                # print(machineId, instance_machine_map[instance.instanceId])
+                if instance.instanceId not in new_used_machine_instances:
+                    # print('----------------------------')
+                    tmp_instances.append(instance)
+        if origin_machinesMap[machineId].cpu <= transfer_machineList[index][1].cpu and \
+                        origin_machinesMap[machineId].mem <= transfer_machineList[index][1].mem:
+            # print('=======================', len(tmp_instances))
+            transfer_machine_instances_map[transfer_machineList[index][0]] = tmp_instances
+            index += 1
+            continue
+        for instance in instances:
+            if machineId != instance_machine_map[
+                instance.instanceId] and instance.instanceId not in new_used_machine_instances:
+                transfer_instances.append(instance)
+    if len(transfer_instances) != 0:
+        transfer_machine_instances_map, assignSize = produce_seed.randomGreedy(transfer_instances,
+                                                                               appsMap,
+                                                                               transfer_machineList,
+                                                                               instance_interferences,
+                                                                               transfer_machine_instances_map)
+        print('transfer size:', len(transfer_instances), ' final transfer size:', assignSize)
     for machineId, instances in transfer_machine_instances_map.items():
         for instance in instances:
             first_rounds.append([instance.instanceId, machineId])
+    print('first 2 rounds:', len(first_rounds))
     # 第二步：从未使用机器进行最终安放
-    for instance in transfer_instances:
-        second_rounds.append([instance, instance.final_machineId])
-
+    for machineId, instances in transfer_machine_instances_map.items():
+        for instance in instances:
+            second_rounds.append([instance.instanceId, instance_machine_map[instance.instanceId]])
+    print('second ronuds:', len(second_rounds))
     return first_rounds, second_rounds, third_rounds

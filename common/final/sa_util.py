@@ -378,9 +378,9 @@ def generate_origin_result(machine_instances_map, time, data_name):
 
 def generate_job_result(machine_jobs, time, data_name):
     res_file = open('2018-' + time + '-origin-job-' + data_name + '-1.0-res.csv', 'w')
-    for machineId, instances in machine_jobs.items():
-        for instance in instances:
-            res_file.write(instance.instanceId + ',' + machineId + '\n')
+    for (machineId, jobId, start_timme), nums in machine_jobs.items():
+        res_file.write(
+            str(jobId) + ',' + str(machineId) + ',' + str(start_timme) + ',' + str(nums) + '\n')
     res_file.close()
 
 
