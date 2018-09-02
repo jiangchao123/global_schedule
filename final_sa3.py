@@ -19,6 +19,8 @@ import common.final.sa_util as sa_util
 import common.final.init_state as init_state_util
 import common.final.constraints_util as constraints_util
 import common.final.produce_seed as produce_seed
+import copy
+import common.final.transfer_util as transfer_util
 
 alpha = 10
 beta = 0.5
@@ -45,6 +47,8 @@ assigned_machines_instances_map = init_state_util.read_init_solution(
     sortedInstanceList, origin_sortedMachineList, origin_machinesMap, appsMap, instancesMap)
 print(fit)
 origin_fit = fit
+
+origin_assigned_machines_instances_map = copy.deepcopy(assigned_machines_instances_map)
 
 ####### first version ##########
 # machine_jobs, _ = produce_seed.randomGreedy(sortedJobList, jobsMap, unassigned_machines,
@@ -126,8 +130,13 @@ sa_util.generate_origin_result(assigned_machines_instances_map, time, data_name)
 # machine_jobs, _ = produce_seed.randomGreedy(sortedJobList, jobsMap, assigned_machines_instances_map,
 #                                             machinesMap, appsMap, sortedMachineList)
 machine_jobs, _ = produce_seed.randomGreedy(sortedJobList, jobsMap, unused_machine_instances,
-                                            origin_machinesMap, appsMap, origin_sortedMachineList, cpu_thresh=1.0)
+                                            origin_machinesMap, appsMap, origin_sortedMachineList,
+                                            cpu_thresh=1.0)
 
 sa_util.generate_job_result(machine_jobs, time, data_name)
 
-
+# 对实例进行迁移
+first_rounds, second_rounds, third_rounds = transfer_util.transfer(
+    origin_assigned_machines_instances_map, assigned_machines_instances_map,
+    origin_machinesMap, origin_sortedMachineList, appsMap,
+    instance_interferences)

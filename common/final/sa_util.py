@@ -36,8 +36,8 @@ def select_sa_machines(assigned_machines_instances_map, unassigned_machineIds, n
         assigned_machines_instances_map[unassigned_machineIds[i]] = []
         add_machines.append(unassigned_machineIds[i])
     for i in range(need_add_machines_nums, len(unassigned_machineIds)):
-        print('i:', i, len(unassigned_machineIds))
-        print('i:', i, unassigned_machineIds[i])
+        # print('i:', i, len(unassigned_machineIds))
+        # print('i:', i, unassigned_machineIds[i])
         unused_machine_instances[unassigned_machineIds[i]] = []
         # new_machines_instances_map[unassigned_machineIds[i]] = []
     for machineId, instances in assigned_machines_instances_map.items():
@@ -381,4 +381,15 @@ def generate_job_result(machine_jobs, time, data_name):
     for machineId, instances in machine_jobs.items():
         for instance in instances:
             res_file.write(instance.instanceId + ',' + machineId + '\n')
+    res_file.close()
+
+
+def generate_instance_transfer_result(first_rounds, second_rounds, third_rounds, time, data_name):
+    res_file = open('2018-' + time + '-transfer-instance-' + data_name + '-1.0-res.csv', 'w')
+    for instanceId, machineId in first_rounds:
+        res_file.write('1' + ',' + instanceId + ',' + machineId + '\n')
+    for instanceId, machineId in second_rounds:
+        res_file.write('2' + ',' + instanceId + ',' + machineId + '\n')
+    for instanceId, machineId in third_rounds:
+        res_file.write('3' + ',' + instanceId + ',' + machineId + '\n')
     res_file.close()
