@@ -168,7 +168,8 @@ def compute_cpu_constraint(instance, machine, appsMap, used_machine_cpu, machine
     return increment_score
 
 
-def randomGreedy(instances, appsMap, machinesList, instance_interferences):
+def randomGreedy(instances, appsMap, machinesList, instance_interferences,
+                 transfer_machine_instances_map=None):
     """
     贪心算法，生成不同的种子
     :param flights:
@@ -177,7 +178,8 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
     machine_instances_map, residual_machine_p, residual_machine_m, residual_machine_pm, \
     residual_machine_disk, residual_machine_cpu, half_residual_machine_cpu, used_machine_cpu, \
     machine_cpu_score, residual_machine_mem, machine_instances_num_map = init_exist_instances(
-        machinesList, 1.0)
+        machinesList, appsMap, cpu_threhold=1.0,
+        transfer_machine_instances_map=transfer_machine_instances_map)
     assignSize = 0
     app_half_index_map = {}
     app_index_map = {}
@@ -285,13 +287,14 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences):
             assignSize += 1
             # if machineId == 'machine_249':
             #     print('剩余cpu:', residual_machine_cpu)
-        # if assignSize % 100 == 0:
-        #     print(assignSize)
+            # if assignSize % 100 == 0:
+            #     print(assignSize)
     return machine_instances_map, assignSize
 
 
 # 初始化已经在机器上的实例
-def init_exist_instances(machinesList, cpu_threhold=1):
+def init_exist_instances(machinesList, appsMap, cpu_threhold=1,
+                         transfer_machine_instances_map=None):
     """
     初始化已经在机器上的实例
     :return:
@@ -319,6 +322,24 @@ def init_exist_instances(machinesList, cpu_threhold=1):
         half_residual_machine_cpu[machineId] = [cpu_threhold * machine.cpu for i in range(T)]
         residual_machine_mem[machineId] = [machine.mem for i in range(T)]
         machine_instances_num_map[machineId] = {}
+    if transfer_machine_instances_map is not None:
+        for machineId, instances in transfer_machine_instances_map.items():
+            machine_instances_map[machineId] = instances
+            for instance in instances:
+                residual_machine_p[machineId] -= appsMap[instance.appId].p
+                residual_machine_m[machineId] -= appsMap[instance.appId].m
+                residual_machine_pm[machineId] -= appsMap[instance.appId].pm
+                residual_machine_disk[machineId] -= appsMap[instance.appId].disk
+                for i in range(T):
+                    residual_machine_cpu[machineId][i] -= appsMap[instance.appId].cpus[i]
+                    used_machine_cpu[machineId][i] += appsMap[instance.appId].cpus[i]
+                    half_residual_machine_cpu[machineId][i] -= appsMap[instance.appId].cpus[i]
+                    residual_machine_mem[machineId][i] -= appsMap[instance.appId].mems[i]
+                if machine_instances_num_map.get(machineId).get(instance.appId) is None:
+                    machine_instances_num_map[machineId][instance.appId] = 1
+                else:
+                    machine_instances_num_map[machineId][instance.appId] += 1
+
     return machine_instances_map, residual_machine_p, residual_machine_m, residual_machine_pm, \
            residual_machine_disk, residual_machine_cpu, half_residual_machine_cpu, used_machine_cpu, \
            machine_cpu_score, residual_machine_mem, machine_instances_num_map

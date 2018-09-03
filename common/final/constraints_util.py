@@ -81,12 +81,14 @@ def tell_cross_constraint(machineId1, machineId2, app1, app2, residual_machine_p
                                             instance_interferences):
             machine_apps_num_map[machineId1][app1.appId] += 1
             return True
+        machine_apps_num_map[machineId1][app1.appId] += 1
     if machine_apps_num_map[machineId2].get(app2.appId) is not None:
         machine_apps_num_map[machineId2][app2.appId] -= 1
         if tell_app_interference_constraint(app1, machineId2, machine_apps_num_map,
                                             instance_interferences):
             machine_apps_num_map[machineId2][app2.appId] += 1
             return True
+        machine_apps_num_map[machineId2][app2.appId] += 1
     return False
 
 
@@ -114,10 +116,10 @@ def tell_mut_constraint(machineId, app, residual_machine_p, residual_machine_m, 
 
 
 def post_check(machinesMap, sortedMachineList, machine_instances_map, appsMap, instance_interferences):
-    _, residual_machine_p, residual_machine_m, residual_machine_pm, \
+    new_machine_instances_map, residual_machine_p, residual_machine_m, residual_machine_pm, \
     residual_machine_disk, residual_machine_cpu, half_residual_machine_cpu, used_machine_cpu, \
     machine_cpu_score, residual_machine_mem, machine_instances_num_map = produce_seed.init_exist_instances(
-        sortedMachineList, cpu_threhold=1)
+        sortedMachineList, appsMap, cpu_threhold=1)
     for machineId, instances in machine_instances_map.items():
         if machinesMap.get(machineId) is None:
             # print('instances 数量', len(instances))
@@ -148,3 +150,19 @@ def post_check(machinesMap, sortedMachineList, machine_instances_map, appsMap, i
                                                 half_residual_machine_cpu):
                 print('不满足cpu约束')
                 continue
+            new_machine_instances_map[machineId].append(instance)
+            if machine_instances_num_map.get(machineId).get(instance.appId) is None:
+                machine_instances_num_map[machineId][instance.appId] = 1
+            else:
+                machine_instances_num_map[machineId][instance.appId] += 1
+            residual_machine_p[machineId] -= appsMap[instance.appId].p
+            residual_machine_m[machineId] -= appsMap[instance.appId].m
+            residual_machine_pm[machineId] -= appsMap[instance.appId].pm
+            residual_machine_disk[machineId] -= appsMap[instance.appId].disk
+            for i in range(T):
+                residual_machine_cpu[machineId][i] -= appsMap[instance.appId].cpus[i]
+                half_residual_machine_cpu[machineId][i] -= appsMap[instance.appId].cpus[
+                    i]
+                used_machine_cpu[machineId][i] += appsMap[instance.appId].cpus[i]
+            for i in range(T):
+                residual_machine_mem[machineId][i] -= appsMap[instance.appId].mems[i]
