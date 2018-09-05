@@ -122,11 +122,15 @@ def transfer(origin_assigned_machines_instances_map, assigned_machines_instances
         print('transfer size:', len(transfer_instances), ' final transfer size:', assignSize)
     for machineId, instances in transfer_machine_instances_map.items():
         for instance in instances:
+            if [instance.instanceId, instance_machine_map[instance.instanceId]] in first_rounds:
+                continue
             first_rounds.append([instance.instanceId, machineId])
     print('first 2 rounds:', len(first_rounds))
     # 第二步：从未使用机器进行最终安放
     for machineId, instances in transfer_machine_instances_map.items():
         for instance in instances:
+            if [instance.instanceId, instance_machine_map[instance.instanceId]] in first_rounds:
+                continue
             second_rounds.append([instance.instanceId, instance_machine_map[instance.instanceId]])
     print('second ronuds:', len(second_rounds))
     return first_rounds, second_rounds, third_rounds

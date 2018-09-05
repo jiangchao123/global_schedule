@@ -18,6 +18,9 @@ import common.final.constraints_util as constraints_util
 beta = 0.5
 T = 98
 
+big_machine_cap = 3
+little_machine_cap = 1
+
 
 def select_sa_machines(assigned_machines_instances_map, unassigned_machineIds, nums, machinesMap,
                        sortedMachineList, appsMap, instance_interferences, instance_machine_map):
@@ -30,16 +33,30 @@ def select_sa_machines(assigned_machines_instances_map, unassigned_machineIds, n
     unused_machine_instances = {}
     # 补充的空机器
     add_machines = []
+
+    use_big_machines_count = 0
+    use_little_machines_count = 0
+    for machineId, instances in assigned_machines_instances_map.items():
+        if machinesMap[machineId].cpu == 92:
+            use_big_machines_count += 1
+        else:
+            use_little_machines_count += 1
     for i in range(0, need_add_machines_nums):
         assigned_machines_instances_map[unassigned_machineIds[i]] = []
         add_machines.append(unassigned_machineIds[i])
+        if machinesMap[unassigned_machineIds[i]].cpu == 92:
+            use_big_machines_count += 1
+        else:
+            use_little_machines_count += 1
     for i in range(need_add_machines_nums, len(unassigned_machineIds)):
         unused_machine_instances[unassigned_machineIds[i]] = []
     for machineId, instances in assigned_machines_instances_map.items():
         total_instances_count += len(instances)
         new_machinesMap[machineId] = machinesMap[machineId]
     print('扩展前实例数量:', total_instances_count, ' 预计使用机器数量：', len(assigned_machines_instances_map))
-    mean_instances_count = int(total_instances_count / nums)
+    print('将要使用大机器:', use_big_machines_count, ' 使用小机器:', use_little_machines_count)
+    little_mean_count = int(total_instances_count / (3*use_big_machines_count+use_little_machines_count))
+    big_mean_count = 3 * little_mean_count
     # 均匀扩展实例unused_machine_instances
     # new_machine_index = 0
     residual_machine_p, residual_machine_m, residual_machine_pm, residual_machine_disk, \
@@ -48,6 +65,10 @@ def select_sa_machines(assigned_machines_instances_map, unassigned_machineIds, n
     # app可存放的最早机器下标
     app_machine_index = {}
     for machineId, instances in assigned_machines_instances_map.items():
+        if machinesMap[machineId].cpu == 32:
+            mean_instances_count = little_mean_count
+        else:
+            mean_instances_count = big_mean_count
         if len(instances) <= mean_instances_count:
             continue
         if machineId in add_machines:

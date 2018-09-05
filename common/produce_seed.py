@@ -258,7 +258,7 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences,
                 if tell_pm_constraint(instance, machine, appsMap, residual_machine_pm):
                     # print('无满足的pm')
                     continue
-                if tell_cpu_constraint(instance, machine, appsMap, residual_machine_cpu):
+                if tell_cpu_constraint(instance, machine, appsMap, residual_machine_cpu, machine_instances_map):
                     # print('无满足的cpu')
                     continue
                 bestMachine = machine
