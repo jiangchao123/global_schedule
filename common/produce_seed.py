@@ -58,7 +58,7 @@ def tell_pm_constraint(instance, machine, appsMap, residual_machine_pm):
     return False
 
 
-def tell_cpu_constraint(instance, machine, appsMap, residual_machine_cpu):
+def tell_cpu_constraint(instance, machine, appsMap, residual_machine_cpu, machine_instances_map):
     # instances = machine_instances_map[machine.machineId]
     # for i in range(T):
     #     cpu = 0
@@ -72,6 +72,11 @@ def tell_cpu_constraint(instance, machine, appsMap, residual_machine_cpu):
     # return False
     for i in range(T):
         if appsMap[instance.appId].cpus[i] > residual_machine_cpu[machine.machineId][i]:
+            print(instance.instanceId, machine.machineId, i)
+            print(appsMap[instance.appId].cpus[i], residual_machine_cpu[machine.machineId][i])
+            instances = machine_instances_map[machine.machineId]
+            for instance2 in instances:
+                print(instance2.instanceId, appsMap[instance2.appId].cpus[i])
             return True
     return False
 

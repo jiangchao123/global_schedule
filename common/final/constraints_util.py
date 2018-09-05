@@ -154,7 +154,8 @@ def post_check(machinesMap, sortedMachineList, machine_instances_map, appsMap,
             if produce_seed.tell_pm_constraint(instance, machine, appsMap, residual_machine_pm):
                 continue
             if produce_seed.tell_cpu_constraint(instance, machine, appsMap,
-                                                half_residual_machine_cpu):
+                                                half_residual_machine_cpu, machine_instances_map):
+
                 print('不满足cpu约束')
                 continue
             new_machine_instances_map[machineId].append(instance)

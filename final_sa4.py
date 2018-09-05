@@ -14,8 +14,8 @@ Software: PyCharm Community Edition
 """
 import common.final.fitness as fitness
 import data_preprocess.data_process as data_process
-import final_solver as final_solver
-import common.final.sa_util as sa_util
+import final_solver2 as final_solver
+import common.final.sa_util2 as sa_util
 import common.final.init_state as init_state_util
 import common.final.constraints_util as constraints_util
 import common.final.produce_seed as produce_seed
@@ -97,12 +97,17 @@ origin_assigned_machines_instances_map = copy.deepcopy(assigned_machines_instanc
 #####third version###########
 assigned_machines_instances_map, instance_machine_map, machinesMap, sortedMachineList, unused_machine_instances = sa_util.select_sa_machines(
     assigned_machines_instances_map,
-    unassigned_machineIds, 5000, origin_machinesMap, origin_sortedMachineList, appsMap,
+    unassigned_machineIds, 6400, origin_machinesMap, origin_sortedMachineList, appsMap,
     instance_interferences, instance_machine_map)
 
 fit = fitness.fitnessfun(assigned_machines_instances_map, machinesMap, appsMap, len(instancesMap),
                          len(instancesMap))
 print('扩展机器后得分：', fit)
+
+constraints_util.post_check(machinesMap, sortedMachineList, assigned_machines_instances_map,
+                            appsMap,
+                            instance_interferences)
+
 residual_machine_p, residual_machine_m, residual_machine_pm, residual_machine_disk, \
 residual_machine_mem, used_machine_cpu, residual_machine_cpu, machine_apps_num_map, machine_cpu_score = sa_util.compute_residual_info(
     assigned_machines_instances_map, sortedMachineList, machinesMap, appsMap)

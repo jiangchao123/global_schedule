@@ -90,7 +90,7 @@ def select_sa_machines(assigned_machines_instances_map, unassigned_machineIds, n
     return assigned_machines_instances_map, instance_machine_map, new_machinesMap, sorted(
         new_machinesMap.items(),
         key=lambda d: d[1].cpu,
-        reverse=True),
+        reverse=True), unused_machine_instances
 
 
 def compute_machine_score(instances, machine, appsMap):
