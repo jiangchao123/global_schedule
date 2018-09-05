@@ -17,6 +17,7 @@ import common.produce_seed as produce_seed
 
 def transfer(origin_assigned_machines_instances_map, assigned_machines_instances_map,
              origin_machinesMap, origin_sortedMachineList, appsMap, instance_interferences):
+
     # 初始化使用的机器
     origin_used_machines = []
     # 最终未使用机器
@@ -63,6 +64,7 @@ def transfer(origin_assigned_machines_instances_map, assigned_machines_instances
 
     # 开始迁移第一.1步：实例迁移至新增机器；
     new_used_machine_instances = []
+    # new_used_machine_instances_map = {}
     for machineId, instances in assigned_machines_instances_map.items():
         if machineId in new_used_machines:
             for instance in instances:
@@ -77,6 +79,8 @@ def transfer(origin_assigned_machines_instances_map, assigned_machines_instances
             transfer_machineList.append((machineId, machine))
             # print('transfer_machineList:', machineId)
 
+    print('transfer machines size:', len(transfer_machineList))
+
     sorted_origin_assigned_machines_instances_map = sorted(
         origin_assigned_machines_instances_map.items(), key=lambda d: origin_machinesMap[d[0]].cpu,
         reverse=True)
@@ -85,16 +89,14 @@ def transfer(origin_assigned_machines_instances_map, assigned_machines_instances
     transfer_machine_instances_map = {}
     index = 0
     for machineId, instances in sorted_origin_assigned_machines_instances_map:
-        # print(machineId)
         tmp_instances = []
-        # print(len(instances))
         for instance in instances:
             if machineId != instance_machine_map[instance.instanceId]:
                 # print(machineId, instance_machine_map[instance.instanceId])
                 if instance.instanceId not in new_used_machine_instances:
                     # print('----------------------------')
                     tmp_instances.append(instance)
-        if origin_machinesMap[machineId].cpu <= transfer_machineList[index][1].cpu and \
+        if index < len(transfer_machineList) and origin_machinesMap[machineId].cpu <= transfer_machineList[index][1].cpu and \
                         origin_machinesMap[machineId].mem <= transfer_machineList[index][1].mem:
             # print('=======================', len(tmp_instances))
             transfer_machine_instances_map[transfer_machineList[index][0]] = tmp_instances
@@ -104,6 +106,13 @@ def transfer(origin_assigned_machines_instances_map, assigned_machines_instances
             if machineId != instance_machine_map[
                 instance.instanceId] and instance.instanceId not in new_used_machine_instances:
                 transfer_instances.append(instance)
+
+    # 加入新增使用机器
+    for machineId, instances in assigned_machines_instances_map.items():
+        if machineId in new_used_machines:
+            transfer_machine_instances_map[machineId] = instances
+            transfer_machineList.append((machineId, origin_machinesMap[machineId]))
+    print('transfer instances size:', len(transfer_instances))
     if len(transfer_instances) != 0:
         transfer_machine_instances_map, assignSize = produce_seed.randomGreedy(transfer_instances,
                                                                                appsMap,

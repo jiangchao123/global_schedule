@@ -20,7 +20,7 @@ import common.final.init_state as init_state_util
 import common.final.constraints_util as constraints_util
 import common.final.produce_seed as produce_seed
 import copy
-import common.final.transfer_util as transfer_util
+import common.final.transfer_util2 as transfer_util
 
 alpha = 10
 beta = 0.5
@@ -31,8 +31,8 @@ time = '9-2'
 
 origin_machinesMap, origin_sortedMachineList = data_process.handle_machine(
     'data/final/machine_resources.' + data_name + '.csv')
-for machineId, machine in origin_sortedMachineList:
-    print(machineId)
+# for machineId, machine in origin_sortedMachineList:
+#     print(machineId)
 appsMap, sortedAppList = data_process.handle_app(
     'data/final/app_resources.csv')
 instancesMap, sortedInstanceList = data_process.handle_instance(
@@ -131,16 +131,18 @@ constraints_util.post_check(machinesMap, sortedMachineList, assigned_machines_in
                             instance_interferences)
 sa_util.generate_origin_result(assigned_machines_instances_map, time, data_name)
 
+# 对实例进行迁移
+first_rounds, second_rounds, third_rounds = transfer_util.transfer(
+    origin_assigned_machines_instances_map, assigned_machines_instances_map,
+    origin_machinesMap, origin_sortedMachineList, appsMap,
+    instance_interferences)
+
+sa_util.generate_instance_transfer_result(first_rounds, second_rounds, third_rounds, time, data_name)
+
 # 放置离线job
 # machine_jobs, _ = produce_seed.randomGreedy(sortedJobList, jobsMap, unused_machine_instances,
 #                                             origin_machinesMap, appsMap, origin_sortedMachineList,
 #                                             cpu_thresh=1.0)
 # sa_util.generate_job_result(machine_jobs, time, data_name)
 
-# 对实例进行迁移
-# first_rounds, second_rounds, third_rounds = transfer_util.transfer(
-#     origin_assigned_machines_instances_map, assigned_machines_instances_map,
-#     origin_machinesMap, origin_sortedMachineList, appsMap,
-#     instance_interferences)
-#
-# sa_util.generate_instance_transfer_result(first_rounds, second_rounds, third_rounds, time, data_name)
+

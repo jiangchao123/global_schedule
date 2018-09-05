@@ -87,45 +87,45 @@ def sa(instancesMap, appsMap, sortedInstanceList, sortedMachineList, instance_ma
                                               residual_machine_disk, used_machine_cpu,
                                               residual_machine_mem,
                                               machine_apps_num_map, machine_cpu_score)
-        else:
-            # 变异
-            while True:
-
-                instance_index1 = random.randint(0, len(instancesMap) - 1)
-                app1 = appsMap.get(sortedInstanceList[instance_index1][1].appId)
-                origin_machineId = instance_machine_map.get(sortedInstanceList[instance_index1][0])
-                machine_index = random.randint(0, len(machinesMap) - 1)
-                machineId = sortedMachineList[machine_index][0]
-                if not constraints_util.tell_mut_constraint(machineId, app1, residual_machine_p,
-                                                            residual_machine_m, residual_machine_pm,
-                                                            residual_machine_disk,
-                                                            residual_machine_mem,
-                                                            machine_apps_num_map,
-                                                            instance_interferences,
-                                                            residual_machine_cpu, has_cpu=True):
-                    break
-            change_list.append([sortedInstanceList[instance_index1][0], machineId])
-            origin_machine_val, target_machine_val = sa_util.score_mut_change(
-                machinesMap[machineId], app1,
-                machinesMap[origin_machineId], machine_instances_map, used_machine_cpu)
-            origin_origin_val = machine_cpu_score[origin_machineId]
-            target_origin_val = machine_cpu_score[machineId]
-            diff = (origin_origin_val + target_origin_val) - (
-                origin_machine_val + target_machine_val)
-            # print('mut:', diff)
-            if diff > 0:
-                print('mut', val, diff)
-                val += diff
-                for change in change_list:
-                    instance_machine_map[change[0]] = change[1]
-                    sa_util.mut_update_info(machineId, sortedInstanceList[instance_index1][1], app1,
-                                            origin_machineId, machine_instances_map,
-                                            residual_machine_p, residual_machine_m,
-                                            residual_machine_pm,
-                                            residual_machine_disk, used_machine_cpu,
-                                            residual_machine_mem,
-                                            machine_apps_num_map, residual_machine_cpu)
-                machine_cpu_score[machineId] = target_machine_val
-                machine_cpu_score[origin_machineId] = origin_machine_val
+        # else:
+        #     # 变异
+        #     while True:
+        #
+        #         instance_index1 = random.randint(0, len(instancesMap) - 1)
+        #         app1 = appsMap.get(sortedInstanceList[instance_index1][1].appId)
+        #         origin_machineId = instance_machine_map.get(sortedInstanceList[instance_index1][0])
+        #         machine_index = random.randint(0, len(machinesMap) - 1)
+        #         machineId = sortedMachineList[machine_index][0]
+        #         if not constraints_util.tell_mut_constraint(machineId, app1, residual_machine_p,
+        #                                                     residual_machine_m, residual_machine_pm,
+        #                                                     residual_machine_disk,
+        #                                                     residual_machine_mem,
+        #                                                     machine_apps_num_map,
+        #                                                     instance_interferences,
+        #                                                     residual_machine_cpu, has_cpu=True):
+        #             break
+        #     change_list.append([sortedInstanceList[instance_index1][0], machineId])
+        #     origin_machine_val, target_machine_val = sa_util.score_mut_change(
+        #         machinesMap[machineId], app1,
+        #         machinesMap[origin_machineId], machine_instances_map, used_machine_cpu)
+        #     origin_origin_val = machine_cpu_score[origin_machineId]
+        #     target_origin_val = machine_cpu_score[machineId]
+        #     diff = (origin_origin_val + target_origin_val) - (
+        #         origin_machine_val + target_machine_val)
+        #     # print('mut:', diff)
+        #     if diff > 0:
+        #         print('mut', val, diff)
+        #         val += diff
+        #         for change in change_list:
+        #             instance_machine_map[change[0]] = change[1]
+        #             sa_util.mut_update_info(machineId, sortedInstanceList[instance_index1][1], app1,
+        #                                     origin_machineId, machine_instances_map,
+        #                                     residual_machine_p, residual_machine_m,
+        #                                     residual_machine_pm,
+        #                                     residual_machine_disk, used_machine_cpu,
+        #                                     residual_machine_mem,
+        #                                     machine_apps_num_map, residual_machine_cpu)
+        #         machine_cpu_score[machineId] = target_machine_val
+        #         machine_cpu_score[origin_machineId] = origin_machine_val
         T_current -= 1
     return val, 0

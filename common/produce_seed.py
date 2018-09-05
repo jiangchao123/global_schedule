@@ -72,11 +72,11 @@ def tell_cpu_constraint(instance, machine, appsMap, residual_machine_cpu, machin
     # return False
     for i in range(T):
         if appsMap[instance.appId].cpus[i] > residual_machine_cpu[machine.machineId][i]:
-            print(instance.instanceId, machine.machineId, i)
-            print(appsMap[instance.appId].cpus[i], residual_machine_cpu[machine.machineId][i])
-            instances = machine_instances_map[machine.machineId]
-            for instance2 in instances:
-                print(instance2.instanceId, appsMap[instance2.appId].cpus[i])
+            # print(instance.instanceId, machine.machineId, i)
+            # print(appsMap[instance.appId].cpus[i], residual_machine_cpu[machine.machineId][i])
+            # instances = machine_instances_map[machine.machineId]
+            # for instance2 in instances:
+                # print(instance2.instanceId, appsMap[instance2.appId].cpus[i])
             return True
     return False
 
@@ -213,7 +213,7 @@ def randomGreedy(instances, appsMap, machinesList, instance_interferences,
                 continue
             if tell_pm_constraint(instance, machine, appsMap, residual_machine_pm):
                 continue
-            if tell_cpu_constraint(instance, machine, appsMap, half_residual_machine_cpu):
+            if tell_cpu_constraint(instance, machine, appsMap, half_residual_machine_cpu, machine_instances_map):
                 continue
             bestMachine = machine
             app_half_index_map[instance.appId] = i

@@ -111,7 +111,6 @@ def compute_machine_score(instances, machine, appsMap):
 def compute_residual_info(machine_instances_map, sortedMachineList, machinesMap, appsMap):
     machine_apps_num_map = {}
     residual_machine_cpu = {}
-    half_residual_machine_cpu = {}
     used_machine_cpu = {}
     machine_cpu_score = {}
     residual_machine_mem = {}
@@ -160,7 +159,6 @@ def compute_residual_info2(machine_instances_map, machine_jobs, sortedMachineLis
                            appsMap):
     machine_apps_num_map = {}
     residual_machine_cpu = {}
-    half_residual_machine_cpu = {}
     used_machine_cpu = {}
     machine_cpu_score = {}
     residual_machine_mem = {}

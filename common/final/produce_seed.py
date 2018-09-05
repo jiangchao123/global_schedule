@@ -69,8 +69,6 @@ def assign_job(job, jobsMap, machine_jobs, assigned_jobs_end_time, residual_mach
     if assigned_jobs_end_time.get(job.jobId) is not None:
         return
     # print('assign job:', job.jobId)
-    if '9487-8' == job.jobId:
-        print('job.jobId:', '9487-8')
     assign_jobs = []
     machine_index = 0
     time_index = 0
@@ -105,9 +103,6 @@ def assign_job(job, jobsMap, machine_jobs, assigned_jobs_end_time, residual_mach
                     machine_jobs[(machine.machineId, job.jobId, j)] = 0
                 machine_jobs[(machine.machineId, job.jobId, j)] += 1
                 assign_jobs.append((job.jobId, machine.machineId, j))
-                if '9487-8' == job.jobId:
-                    if 'machine_3681' == machine.machineId:
-                        print('-------------------将job', job.jobId, '放置在机器：', machine.machineId, ' 在时刻:', j, residual_machine_cpu[machine.machineId])
                 for i in range(j, j + job.run_time):
                     residual_machine_cpu[machine.machineId][i] -= job.cpu
                     used_machine_cpu[machine.machineId][i] += job.cpu

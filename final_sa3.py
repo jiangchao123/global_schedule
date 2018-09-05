@@ -26,7 +26,7 @@ alpha = 10
 beta = 0.5
 T = 98
 
-data_name = 'b'
+data_name = 'e'
 time = '9-2'
 
 origin_machinesMap, origin_sortedMachineList = data_process.handle_machine(
@@ -97,40 +97,40 @@ origin_assigned_machines_instances_map = copy.deepcopy(assigned_machines_instanc
 #####third version###########
 assigned_machines_instances_map, instance_machine_map, machinesMap, sortedMachineList, unused_machine_instances = sa_util.select_sa_machines(
     assigned_machines_instances_map,
-    unassigned_machineIds, 5000, origin_machinesMap, origin_sortedMachineList, appsMap,
+    unassigned_machineIds, 7000, origin_machinesMap, origin_sortedMachineList, appsMap,
     instance_interferences, instance_machine_map)
 
 fit = fitness.fitnessfun(assigned_machines_instances_map, machinesMap, appsMap, len(instancesMap),
                          len(instancesMap))
 print('扩展机器后得分：', fit)
-# residual_machine_p, residual_machine_m, residual_machine_pm, residual_machine_disk, \
-# residual_machine_mem, used_machine_cpu, residual_machine_cpu, machine_apps_num_map, machine_cpu_score = sa_util.compute_residual_info(
-#     assigned_machines_instances_map, sortedMachineList, machinesMap, appsMap)
-#
-# val, best_score = final_solver.sa(instancesMap, appsMap, sortedInstanceList, sortedMachineList,
-#                                   instance_machine_map,
-#                                   machinesMap, machine_cpu_score, residual_machine_p,
-#                                   residual_machine_m,
-#                                   residual_machine_pm, residual_machine_disk, residual_machine_mem,
-#                                   machine_apps_num_map, instance_interferences,
-#                                   assigned_machines_instances_map, used_machine_cpu,
-#                                   residual_machine_cpu)
-# print(val, best_score)
-#
-# # static_tool.static_machine(machine_instances_map, machinesMap, appsMap)
-# fit = fitness.fitnessfun(assigned_machines_instances_map, machinesMap, appsMap, len(instancesMap),
-#                          len(instancesMap))
-# print(fit)
-# constraints_util.post_check(machinesMap, sortedMachineList, assigned_machines_instances_map,
-#                             appsMap,
-#                             instance_interferences)
-# sa_util.generate_origin_result(assigned_machines_instances_map, time, data_name)
+residual_machine_p, residual_machine_m, residual_machine_pm, residual_machine_disk, \
+residual_machine_mem, used_machine_cpu, residual_machine_cpu, machine_apps_num_map, machine_cpu_score = sa_util.compute_residual_info(
+    assigned_machines_instances_map, sortedMachineList, machinesMap, appsMap)
+
+val, best_score = final_solver.sa(instancesMap, appsMap, sortedInstanceList, sortedMachineList,
+                                  instance_machine_map,
+                                  machinesMap, machine_cpu_score, residual_machine_p,
+                                  residual_machine_m,
+                                  residual_machine_pm, residual_machine_disk, residual_machine_mem,
+                                  machine_apps_num_map, instance_interferences,
+                                  assigned_machines_instances_map, used_machine_cpu,
+                                  residual_machine_cpu)
+print(val, best_score)
+
+# static_tool.static_machine(machine_instances_map, machinesMap, appsMap)
+fit = fitness.fitnessfun(assigned_machines_instances_map, machinesMap, appsMap, len(instancesMap),
+                         len(instancesMap))
+print(fit)
+constraints_util.post_check(machinesMap, sortedMachineList, assigned_machines_instances_map,
+                            appsMap,
+                            instance_interferences)
+sa_util.generate_origin_result(assigned_machines_instances_map, time, data_name)
 
 # 放置离线job
-machine_jobs, _ = produce_seed.randomGreedy(sortedJobList, jobsMap, unused_machine_instances,
-                                            origin_machinesMap, appsMap, origin_sortedMachineList,
-                                            cpu_thresh=1.0)
-sa_util.generate_job_result(machine_jobs, time, data_name)
+# machine_jobs, _ = produce_seed.randomGreedy(sortedJobList, jobsMap, unused_machine_instances,
+#                                             origin_machinesMap, appsMap, origin_sortedMachineList,
+#                                             cpu_thresh=1.0)
+# sa_util.generate_job_result(machine_jobs, time, data_name)
 
 # 对实例进行迁移
 # first_rounds, second_rounds, third_rounds = transfer_util.transfer(
