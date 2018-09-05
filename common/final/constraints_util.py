@@ -58,7 +58,8 @@ def tell_app_interference_constraint(app, machineId, machine_instances_num_map,
 def tell_cross_constraint(machineId1, machineId2, app1, app2, residual_machine_p,
                           residual_machine_m,
                           residual_machine_pm, residual_machine_disk, residual_machine_mem,
-                          machine_apps_num_map, instance_interferences):
+                          machine_apps_num_map, instance_interferences, residual_machine_cpu,
+                          tell_cpu=False):
     if residual_machine_p[machineId1] < app2.p - app1.p or residual_machine_p[
         machineId2] < app1.p - app2.p:
         return True
@@ -75,6 +76,11 @@ def tell_cross_constraint(machineId1, machineId2, app1, app2, residual_machine_p
         if residual_machine_mem[machineId1][i] < app2.mems[i] - app1.mems[i] or \
                         residual_machine_mem[machineId2][i] < app1.mems[i] - app2.mems[i]:
             return True
+    if tell_cpu:
+        for i in range(T):
+            if residual_machine_cpu[machineId1][i] < app2.cpus[i] - app1.cpus[i] or \
+                            residual_machine_cpu[machineId2][i] < app1.cpus[i] - app2.cpus[i]:
+                return True
     if machine_apps_num_map[machineId1].get(app1.appId) is not None:
         machine_apps_num_map[machineId1][app1.appId] -= 1
         if tell_app_interference_constraint(app2, machineId1, machine_apps_num_map,
@@ -115,7 +121,8 @@ def tell_mut_constraint(machineId, app, residual_machine_p, residual_machine_m, 
     return False
 
 
-def post_check(machinesMap, sortedMachineList, machine_instances_map, appsMap, instance_interferences):
+def post_check(machinesMap, sortedMachineList, machine_instances_map, appsMap,
+               instance_interferences):
     new_machine_instances_map, residual_machine_p, residual_machine_m, residual_machine_pm, \
     residual_machine_disk, residual_machine_cpu, half_residual_machine_cpu, used_machine_cpu, \
     machine_cpu_score, residual_machine_mem, machine_instances_num_map = produce_seed.init_exist_instances(

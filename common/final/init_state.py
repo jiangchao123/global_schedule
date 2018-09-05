@@ -16,6 +16,8 @@ import common.final.fitness as fitness
 
 
 def read_init_solution(sortedInstanceList, sortedMachineList, machinesMap, appsMap, instancesMap):
+    used_little_machines_count = 0
+    used_big_machines_count = 0
     machine_instances_map = {}
     unassigned_machines = {}
     assigned_machines_instances_map = {}
@@ -36,11 +38,18 @@ def read_init_solution(sortedInstanceList, sortedMachineList, machinesMap, appsM
 
     fit = fitness.fitnessfun(machine_instances_map, machinesMap, appsMap, assign_count,
                              len(instancesMap))
-    for machineId, instances in machine_instances_map.items():
+    for machineId, machine in sortedMachineList:
+        instances = machine_instances_map.get(machineId)
+    # for machineId, instances in machine_instances_map.items():
         if len(instances) == 0:
             unassigned_machines[machineId] = []
             unassigned_machineIds.append(machineId)
         else:
             assigned_machines_instances_map[machineId] = instances
-    print('已使用机器数量:', len(assigned_machines_instances_map))
+            if machinesMap[machineId].cpu == 32:
+                used_little_machines_count += 1
+            else:
+                used_big_machines_count += 1
+    print('已使用机器数量:', len(assigned_machines_instances_map), ' 大机器数量:', used_big_machines_count,
+          ' 小机器数量：', used_little_machines_count)
     return machine_instances_map, instance_machine_map, fit, unassigned_machines, unassigned_machineIds, assigned_machines_instances_map
